@@ -3,7 +3,7 @@ pub mod state;
 
 use tui::{
     backend::{ Backend, CrosstermBackend },
-    widgets::{ BorderType, Block, Borders, Tabs },
+    widgets::{ BorderType, Block, Borders, Tabs, Paragraph },
     layout::{ Alignment, Layout, Constraint, Direction },
     style::{ Color, Modifier, Style },
     text::{ Span, Spans },
@@ -13,7 +13,7 @@ use tui::{
 use widgets::{ label::Label, text_input::TextInput };
 use crate::ui::state::{ UiState, Method, UIElement };
 
-pub fn ui_func<B: Backend>(f: &mut Frame<B>, mut uistate: UiState) {
+pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let window_size = f.size();
 
     // Divides window
@@ -21,7 +21,7 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, mut uistate: UiState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(10),
-            Constraint::Length(2),
+            Constraint::Length(1),
         ].as_ref())
         .split(window_size);
 
@@ -42,7 +42,7 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, mut uistate: UiState) {
         .constraints([
             Constraint::Length(11),
             Constraint::Min(10),
-            Constraint::Length(9),
+            Constraint::Length(8),
         ].as_ref())
         .split(inner_chunks[0]);
 
@@ -89,11 +89,23 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, mut uistate: UiState) {
 
     f.render_widget(url_input, top_bar_chunks[1]);
 
-    let send_button = Block::default().borders(Borders::ALL)
+    // Send button
+    let send_button_outline = Block::default().borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .style(Style::default().fg(Color::Cyan));
 
-    f.render_widget(send_button, top_bar_chunks[2]);
+    f.render_widget(send_button_outline, top_bar_chunks[2].clone());
+
+    let mut send_rect = top_bar_chunks[2].clone();
+    send_rect.x += 2;
+    send_rect.width -= 4;
+    send_rect.y += 1;
+
+    let send_button_text = Block::default().borders(Borders::NONE)
+        .title("Send")
+        .style(Style::default().fg(Color::Cyan));
+
+    f.render_widget(send_button_text, send_rect);
 
     let tab_titles = vec![
         Spans::from(vec![Span::raw("Url Params")]),
@@ -115,5 +127,59 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, mut uistate: UiState) {
         .title(" Response ");
 
     f.render_widget(response, mid_pane[1]);
+
+    match uistate.response() {
+        Some(content) => {
+            let mut rect = mid_pane[1].clone();
+            rect.y += 1;
+            rect.height -= 2;
+            rect.x += 1;
+            rect.width -= 2;
+
+            let s: Vec<String> = string_chunks(content, rect.width as usize);
+
+            let response_block = Paragraph::new(string_chunks_to_spans(&s));
+
+            f.render_widget(response_block, rect);
+        },
+        None => {},
+    }
+
+    match uistate.response_status_code() {
+        Some(number) => {
+            let status_block = Block::default().borders(Borders::NONE)
+                .title(vec![
+                    Span::styled(
+                        " Done ",
+                        Style::default().bg(Color::Green).fg(Color::Black)
+                    ),
+                    Span::raw(format!(" Status: {}", number)),
+                ]);
+
+            f.render_widget(status_block, outer_chunks[1]);
+        },
+        None => {},
+    }
+}
+
+/**
+ * Returns vector of Strings with length upto `max_width`
+ */
+fn string_chunks(input: &String, max_width: usize) -> Vec<String> {
+    input.chars()
+        .collect::<Vec<char>>()
+        .chunks(max_width)
+        .map(|c| c.iter().collect::<String>())
+        .collect::<Vec<String>>()
+}
+
+fn string_chunks_to_spans<'a>(input: &'a Vec<String>) -> Vec<Spans<'a>> {
+    let mut spans: Vec<Spans> = vec![];
+
+    for chunk in input.iter() {
+        spans.push(Spans::from(chunk.clone()));
+    }
+
+    spans
 }
 

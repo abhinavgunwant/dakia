@@ -5,6 +5,8 @@ pub struct UiState {
     url: String,
     editor_mode: EditorMode,
     method: Method,
+    response: Option<String>,
+    response_status_code: Option<u16>,
     active_element: UIElement, // the ui element that's currently active.
     input_mode: InputMode, // works only with editor_mode = VIM
 }
@@ -84,7 +86,7 @@ impl Default for EditorMode {
     fn default() -> Self { EditorMode::Normal }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum InputMode {
     Normal,
     INSERT,
@@ -109,7 +111,7 @@ impl UiState {
         self.editor_mode = editor_mode;
     }
 
-    pub fn input_mode(self) -> InputMode { self.input_mode }
+    pub fn input_mode(&self) -> InputMode { self.input_mode }
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
         self.input_mode = input_mode;
     }
@@ -130,6 +132,16 @@ impl UiState {
         }
 
         self.set_active_element(UIElement::from_val(n - 1));
+    }
+
+    pub fn response(&self) -> &Option<String> { &self.response }
+    pub fn set_response(&mut self, resp: Option<String>) { self.response = resp; }
+
+    pub fn response_status_code(&self) -> &Option<u16> {
+        &self.response_status_code
+    }
+    pub fn set_response_status_code(&mut self, status: Option<u16>) {
+        self.response_status_code = status;
     }
 }
 
