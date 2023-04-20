@@ -53,7 +53,8 @@ fn main() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut uistate: UiState) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut uistate: UiState)
+    -> io::Result<()> {
     loop {
         terminal.draw(|f| ui_func(f, &mut uistate))?;
 

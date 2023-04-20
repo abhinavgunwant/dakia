@@ -2,15 +2,15 @@ pub mod widgets;
 pub mod state;
 
 use tui::{
-    backend::{ Backend, CrosstermBackend },
+    backend::Backend,
     widgets::{ BorderType, Block, Borders, Tabs, Paragraph },
-    layout::{ Alignment, Layout, Constraint, Direction },
-    style::{ Color, Modifier, Style },
+    layout::{ Layout, Constraint, Direction },
+    style::{ Color, Style },
     text::{ Span, Spans },
-    Frame, Terminal,
+    Frame,
 };
 
-use widgets::{ label::Label, text_input::TextInput };
+use widgets::text_input::TextInput;
 use crate::ui::state::{ UiState, Method, UIElement };
 
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
@@ -90,9 +90,15 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     f.render_widget(url_input, top_bar_chunks[1]);
 
     // Send button
+    let mut send_button_style = Style::default();
+
+    if uistate.active_element() == &UIElement::SendButton {
+        send_button_style = send_button_style.fg(Color::Cyan);
+    }
+
     let send_button_outline = Block::default().borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .style(Style::default().fg(Color::Cyan));
+        .style(send_button_style);
 
     f.render_widget(send_button_outline, top_bar_chunks[2].clone());
 
@@ -103,10 +109,11 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
 
     let send_button_text = Block::default().borders(Borders::NONE)
         .title("Send")
-        .style(Style::default().fg(Color::Cyan));
+        .style(send_button_style);
 
     f.render_widget(send_button_text, send_rect);
 
+    // Tab Titles
     let tab_titles = vec![
         Spans::from(vec![Span::raw("Url Params")]),
         Spans::from(vec![Span::raw("Authorization")]),

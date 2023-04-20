@@ -17,7 +17,7 @@ pub struct UiState {
  */
 #[derive(Clone, Copy, PartialEq)]
 pub enum UIElement {
-    Method = 0, URL = 1,
+    Method = 0, URL = 1, SendButton = 2,
 }
 
 impl Default for UIElement {
@@ -27,9 +27,10 @@ impl Default for UIElement {
 impl UIElement {
     fn from_val(val: u8) -> Self {
         match val {
-            x if x <= UIElement::Method as u8  => UIElement::Method,
-            x if x >= UIElement::URL as u8 => UIElement::URL,
-            _ => UIElement::URL,
+            0 => UIElement::Method,
+            1 => UIElement::URL,
+            2 => UIElement::SendButton,
+            _ => UIElement::SendButton,
         }
     }
 }

@@ -72,6 +72,7 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 }
                             }
                         },
+                        UIElement::SendButton => {},
                     }
                 },
                 KeyCode::Backspace => { uistate.pop_url(); },
@@ -82,6 +83,9 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 Ok(()) => {},
                                 Err(_e) => {},
                             }
+                        },
+                        UIElement::SendButton => {
+                            call_api(uistate).unwrap();
                         },
                         _ => {},
                     }
