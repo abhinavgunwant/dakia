@@ -17,7 +17,14 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
     {
         if let Event::Key(key) = event::read()? {
             match key.code {
-                KeyCode::Esc => { return Ok(true); },
+                KeyCode::Esc => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs() {
+                            uistate.set_inside_request_tabs(false);
+                    } else {
+                        return Ok(true);
+                    }
+                },
                 KeyCode::Char(c) => {
                     match uistate.active_element() {
                         UIElement::URL => { uistate.append_url(c); },
@@ -73,6 +80,7 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             }
                         },
                         UIElement::SendButton => {},
+                        _ => {},
                     }
                 },
                 KeyCode::Backspace => { uistate.pop_url(); },
@@ -87,11 +95,30 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                         UIElement::SendButton => {
                             call_api(uistate).unwrap();
                         },
+                        UIElement::RequestTabsElem => {
+                            uistate.set_inside_request_tabs(true);
+                        },
                         _ => {},
                     }
                 }
-                KeyCode::Tab => { uistate.activate_next_element(); },
-                KeyCode::BackTab => { uistate.activate_previous_element(); },
+                KeyCode::Tab => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs()
+                    {
+                        uistate.activate_next_req_tab();
+                    } else {
+                        uistate.activate_next_element();
+                    }
+                },
+                KeyCode::BackTab => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs()
+                    {
+                        uistate.activate_previous_req_tab();
+                    } else {
+                        uistate.activate_previous_element();
+                    }
+                },
                 _ => {  },
             };
         }

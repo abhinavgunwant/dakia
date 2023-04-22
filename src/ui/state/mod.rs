@@ -1,10 +1,15 @@
+pub mod request_tabs;
+
 use std::fmt::{ Display, Formatter, Result as FResult };
+use request_tabs::RequestTabs;
 
 #[derive(Clone, Default)]
 pub struct UiState {
     url: String,
     editor_mode: EditorMode,
     method: Method,
+    active_request_tab: RequestTabs,
+    inside_request_tabs: bool,
     response: Option<String>,
     response_status_code: Option<u16>,
     active_element: UIElement, // the ui element that's currently active.
@@ -17,7 +22,7 @@ pub struct UiState {
  */
 #[derive(Clone, Copy, PartialEq)]
 pub enum UIElement {
-    Method = 0, URL = 1, SendButton = 2,
+    Method = 0, URL = 1, SendButton = 2, RequestTabsElem = 3, ResponseArea = 4,
 }
 
 impl Default for UIElement {
@@ -30,7 +35,9 @@ impl UIElement {
             0 => UIElement::Method,
             1 => UIElement::URL,
             2 => UIElement::SendButton,
-            _ => UIElement::SendButton,
+            3 => UIElement::RequestTabsElem,
+            4 => UIElement::ResponseArea,
+            _ => UIElement::ResponseArea,
         }
     }
 }
@@ -50,12 +57,12 @@ impl Default for Method {
 
 impl Display for Method {
     fn fmt(&self, f: &mut Formatter<'_>) -> FResult {
-        write!(f, "Method::{}", self.clone().get_val())
+        write!(f, "Method::{}", self.clone().get_str_label())
     }
 }
 
 impl Method {
-    pub fn get_val(self) -> String {
+    pub fn get_str_label(self) -> String {
         match self {
             Method::GET => String::from("GET"),
             Method::POST => String::from("POST"),
@@ -143,6 +150,31 @@ impl UiState {
     }
     pub fn set_response_status_code(&mut self, status: Option<u16>) {
         self.response_status_code = status;
+    }
+
+    pub fn active_request_tab(&self) -> &RequestTabs {
+        &self.active_request_tab
+    }
+    pub fn set_active_request_tab(&mut self, rt: RequestTabs) {
+        self.active_request_tab = rt;
+    }
+
+    pub fn inside_request_tabs(&self) -> bool { self.inside_request_tabs }
+    pub fn set_inside_request_tabs(&mut self, irt: bool) {
+        self.inside_request_tabs = irt;
+    }
+    pub fn activate_next_req_tab(&mut self) {
+        let n = *self.active_request_tab() as u8;
+        self.set_active_request_tab(RequestTabs::from_val(n + 1));
+    }
+    pub fn activate_previous_req_tab(&mut self) {
+        let n = *self.active_request_tab() as u8;
+
+        if n == 0 {
+            return;
+        }
+
+        self.set_active_request_tab(RequestTabs::from_val(n - 1));
     }
 }
 
