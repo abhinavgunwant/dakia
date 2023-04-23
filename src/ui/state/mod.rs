@@ -1,28 +1,51 @@
+//! State-related things
+
 pub mod request_tabs;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
 
+/// Represents app state.
 #[derive(Clone, Default)]
 pub struct UiState {
+    /// The URL that user types in the URL bar.
     url: String,
+
+    /// The current [EditorMode].
     editor_mode: EditorMode,
+
+    /// The current HTTP request [Method].
     method: Method,
+
+    /// The current request tab that is active.
     active_request_tab: RequestTabs,
+
+    /// Whether the user is editing something *within* some request tab
     inside_request_tabs: bool,
+
+    /// The response output of the request.
+    /// **Note:** Value is `None` until the first request is made.
     response: Option<String>,
+
+    /// Status code of the request.
+    /// **Note:** Value is `None` until the first request is made.
     response_status_code: Option<u16>,
-    active_element: UIElement, // the ui element that's currently active.
-    input_mode: InputMode, // works only with editor_mode = VIM
+
+    /// Currently active [UIElement].
+    active_element: UIElement,
+
+    /// Current [InputMode].
+    input_mode: InputMode,
 }
 
-/**
- * An enum representing the ui elements.
- * e.g. URL, Method, etc
- */
+/// An enum representing all the ui elements that can be seen on the screen.
 #[derive(Clone, Copy, PartialEq)]
 pub enum UIElement {
-    Method = 0, URL = 1, SendButton = 2, RequestTabsElem = 3, ResponseArea = 4,
+    Method = 0,
+    URL = 1,
+    SendButton = 2,
+    RequestTabsElem = 3,
+    ResponseArea = 4,
 }
 
 impl Default for UIElement {
@@ -30,6 +53,7 @@ impl Default for UIElement {
 }
 
 impl UIElement {
+    /// Returns a `UIElement` variant against the value supplied.
     fn from_val(val: u8) -> Self {
         match val {
             0 => UIElement::Method,
@@ -42,6 +66,7 @@ impl UIElement {
     }
 }
 
+/// List of HTTP methods
 #[derive(Clone, PartialEq)]
 pub enum Method {
     GET = 0,
@@ -62,6 +87,8 @@ impl Display for Method {
 }
 
 impl Method {
+    /// Returns the string label for the method variants. Used to render the
+    /// different methods in the ui.
     pub fn get_str_label(self) -> String {
         match self {
             Method::GET => String::from("GET"),
@@ -72,6 +99,7 @@ impl Method {
         }
     }
 
+    /// Returns `Method` variant against the value supplied.
     pub fn from_val(val: u8) -> Self {
         match val {
             x if x <= Method::GET as u8  => Method::GET,
@@ -84,6 +112,18 @@ impl Method {
     }
 }
 
+/// Represents the editor mode.
+/// There can be 2 editor modes:
+/// * **Normal** - This is the default editor mode. The user uses the tab and
+/// arrow keys on their keyboard to move around. Once a field is selected, it
+/// can be edited directly.
+///
+/// * **\*VIM** - This is a future editor mode with vim movements and modes like
+/// `NORMAL`, `INSERT` etc.
+///
+/// **Notes**
+/// * **\*** - VIM editor mode is yet to be implemented! It doesn't work as
+/// of now.
 #[derive(Clone, PartialEq)]
 pub enum EditorMode {
     Normal,
@@ -106,32 +146,50 @@ impl Default for InputMode {
 }
 
 impl UiState {
+    /// Gets the URL
     pub fn url(&mut self) -> String { self.url.clone() }
+    /// Sets the URL
     pub fn set_url(&mut self, url: String) { self.url = url; }
+    /// Appends `chr` at the end of the URL.
     pub fn append_url(&mut self, chr: char) { self.url.push(chr); }
+    /// Pops the last character of the URL.
     pub fn pop_url(&mut self) { self.url.pop(); }
 
+    /// Gets the current [Method].
     pub fn method(&mut self) -> Method { self.method.clone() }
+    /// Sets the current [Method].
     pub fn set_method(&mut self, method: Method) { self.method = method; }
 
+    /// Gets the current [EditorMode].
     pub fn editor_mode(self) -> EditorMode { self.editor_mode }
+    /// Sets the current [EditorMode].
     pub fn set_editor_mode(&mut self, editor_mode: EditorMode) {
         self.editor_mode = editor_mode;
     }
 
+    /// Gets the current [InputMode].
     pub fn input_mode(&self) -> InputMode { self.input_mode }
+    /// Sets the current [InputMode].
     pub fn set_input_mode(&mut self, input_mode: InputMode) {
         self.input_mode = input_mode;
     }
 
+    /// Gets the active [UIElement].
     pub fn active_element(&self) -> &UIElement { &self.active_element }
+    /// Sets the active [UIElement].
     pub fn set_active_element(&mut self, act_elem: UIElement) {
         self.active_element = act_elem;
     }
+    /// Changes the `active_element` to the next [UIElement] variant.
+    /// When the current `active_element` is the last [UIElement] variant (or
+    /// has the largest integer value), this keeps the same element active.
     pub fn activate_next_element(&mut self) {
         let n = *self.active_element() as u8;
         self.set_active_element(UIElement::from_val(n + 1));
     }
+    /// Changes the `active_element` to the previous [UIElement] variant.
+    /// When the current `active_element` is the first [UIElement] variant (or
+    /// has the smallest integer value), this keeps the same element active.
     pub fn activate_previous_element(&mut self) {
         let n = *self.active_element() as u8;
 

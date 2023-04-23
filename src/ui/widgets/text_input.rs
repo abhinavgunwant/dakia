@@ -6,10 +6,9 @@ use tui::{
     style::{ Color, Style },
 };
 
-/**
- * A Widget that combines Block with text.
- * Used as a text input field.
- */
+
+/// A Widget that combines Block with text.
+/// Used as a text input field.
 #[derive(Debug, Clone, Eq)]
 pub struct TextInput {
     label: Option<String>,

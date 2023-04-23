@@ -1,3 +1,5 @@
+//! This module looks after everything in the ui.
+
 pub mod widgets;
 pub mod state;
 
@@ -15,6 +17,7 @@ use crate::ui::state::{
     UiState, Method, UIElement, request_tabs::RequestTabs,
 };
 
+/// Main rendering function called whenever the ui has to be re-rendered.
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let window_size = f.size();
 
@@ -192,6 +195,7 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     }
 }
 
+/// Renders tab content
 fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect: Rect) {
     let mut tab_style = Style::default();
 
@@ -235,9 +239,8 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
     }
 }
 
-/**
- * Returns vector of Strings with length upto `max_width`
- */
+/// Returns vector of Strings with length upto `max_width`.
+/// Used to "wrap" the text.
 fn string_chunks(input: &String, max_width: usize) -> Vec<String> {
     input.chars()
         .collect::<Vec<char>>()
@@ -246,6 +249,7 @@ fn string_chunks(input: &String, max_width: usize) -> Vec<String> {
         .collect::<Vec<String>>()
 }
 
+/// Converts the string chunks to a vector of `Spans`.
 fn string_chunks_to_spans<'a>(input: &'a Vec<String>) -> Vec<Spans<'a>> {
     let mut spans: Vec<Spans> = vec![];
 

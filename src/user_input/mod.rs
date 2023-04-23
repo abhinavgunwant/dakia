@@ -6,11 +6,9 @@ use crate::{
     api::call_api,
 };
 
-/**
- * User interaction related code...
- *
- * Returning Ok(true) shall exit the program.
- */
+
+/// User interaction related code...
+/// Returning `Ok(true)` shall exit the program.
 pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
     if uistate.clone().editor_mode() == EditorMode::Normal
         || uistate.clone().input_mode() == InputMode::Normal
