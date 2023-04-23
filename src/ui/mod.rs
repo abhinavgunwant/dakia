@@ -132,8 +132,14 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let mut tab_head_active_style = Style::default().fg(Color::Yellow);
 
     if uistate.active_element() == &UIElement::RequestTabsElem {
-        tab_head_style = tab_head_style.fg(Color::Yellow);
-        tab_head_active_style = tab_head_active_style.fg(Color::Cyan);
+        if uistate.inside_request_tabs() {
+            tab_head_style = tab_head_style.fg(Color::Yellow);
+            tab_head_active_style = tab_head_active_style.fg(Color::Cyan);
+        } else {
+            tab_head_style = tab_head_style.fg(Color::Black).bg(Color::Yellow);
+            tab_head_active_style = tab_head_active_style.fg(Color::Black)
+                .bg(Color::Cyan);
+        }
     }
 
     let tab_head = Tabs::new(tab_titles)
@@ -200,9 +206,10 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
     let mut tab_style = Style::default();
 
     if uistate.active_element() == &UIElement::RequestTabsElem {
-        tab_style = tab_style.fg(Color::Yellow).bg(Color::Blue);
         if uistate.inside_request_tabs() {
-            tab_style = tab_style.bg(Color::Reset);
+            tab_style = tab_style.bg(Color::Reset).fg(Color::Yellow);
+        } else {
+            tab_style = tab_style.fg(Color::Black).bg(Color::Yellow);
         }
     }
 
