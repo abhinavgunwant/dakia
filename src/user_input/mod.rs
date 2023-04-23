@@ -2,7 +2,7 @@ use std::io::Error;
 
 use crossterm::event::{ self, Event, KeyCode };
 use crate::{
-    ui::state::{ UiState, InputMode, EditorMode, UIElement, Method },
+    ui::state::{ UiState, InputMode, EditorMode, UIElement, Method, request_tabs::RequestTabs },
     api::call_api,
 };
 
@@ -116,6 +116,60 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     } else {
                         uistate.activate_previous_element();
                     }
+                },
+                KeyCode::Up => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs()
+                    {
+                        match uistate.active_request_tab() {
+                            RequestTabs::UrlParams => {
+                                let mut apr = uistate.url_params()
+                                    .active_param_row();
+
+                                if apr != 0 {
+                                    apr -= 1;
+                                    uistate.url_params().set_active_param_row(apr);
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                },
+                KeyCode::Right => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs()
+                    {
+                        match uistate.active_request_tab() {
+                            RequestTabs::UrlParams => {
+                                let params = uistate.url_params();
+                                let apr = params.active_param_col();
+
+                                if apr < 4 {
+                                    params.set_active_param_col(apr + 1);
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                },
+                KeyCode::Left => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem
+                        && uistate.inside_request_tabs()
+                    {
+                        match uistate.active_request_tab() {
+                            RequestTabs::UrlParams => {
+                                let params = uistate.url_params();
+                                let apr = params.active_param_col();
+
+                                if apr > 0 {
+                                    params.set_active_param_col(apr - 1);
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                },
+                KeyCode::Down => {
                 },
                 _ => {  },
             };

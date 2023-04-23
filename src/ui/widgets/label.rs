@@ -7,6 +7,7 @@ use tui::{
 
 #[derive(Default)]
 pub struct Label<'a> {
+    style: Style,
     text: &'a str,
     margin_top: u16,
     margin_right: u16,
@@ -37,6 +38,11 @@ impl<'a> Label<'a> {
 
     pub fn margin_left(mut self, margin_left: u16) -> Label<'a> {
         self.margin_left = margin_left;
+        self
+    }
+
+    pub fn style(mut self, style: Style) -> Label<'a> {
+        self.style = style;
         self
     }
 

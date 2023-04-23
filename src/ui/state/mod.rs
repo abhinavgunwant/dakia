@@ -1,9 +1,11 @@
 //! State-related things
 
 pub mod request_tabs;
+pub mod url_params;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
+use url_params::{ Param, UrlParams };
 
 /// Represents app state.
 #[derive(Clone, Default)]
@@ -36,6 +38,9 @@ pub struct UiState {
 
     /// Current [InputMode].
     input_mode: InputMode,
+
+    /// HTTP url parameters
+    url_params: UrlParams,
 }
 
 /// An enum representing all the ui elements that can be seen on the screen.
@@ -233,6 +238,10 @@ impl UiState {
         }
 
         self.set_active_request_tab(RequestTabs::from_val(n - 1));
+    }
+    
+    pub fn url_params(&mut self) -> &mut UrlParams {
+        &mut self.url_params
     }
 }
 
