@@ -16,11 +16,20 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Esc => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs() {
-                            uistate.set_inside_request_tabs(false);
-                    } else {
-                        return Ok(true);
+                    match uistate.active_element() {
+                        UIElement::RequestTabsElem => {
+                            if uistate.inside_request_tabs() {
+                                if uistate.url_params().editing() {
+                                    uistate.url_params().set_editing(false);
+                                } else {
+                                    uistate.set_inside_request_tabs(false);
+                                }
+                            } else {
+                                return Ok(true);
+                            }
+                        },
+
+                        _ => {},
                     }
                 },
                 KeyCode::Char(c) => {
@@ -78,10 +87,32 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             }
                         },
                         UIElement::SendButton => {},
+                        UIElement::RequestTabsElem => {
+                            if uistate.url_params().editing() {
+                                uistate.url_params().temp_text_append(c);
+                            }
+                        },
                         _ => {},
                     }
                 },
-                KeyCode::Backspace => { uistate.pop_url(); },
+                KeyCode::Backspace => {
+                    match uistate.active_element() {
+                        UIElement::URL => {
+                            uistate.pop_url();
+                        },
+
+                        UIElement::RequestTabsElem => {
+                            if *uistate.active_request_tab() == RequestTabs::UrlParams
+                                && uistate.inside_request_tabs()
+                                && uistate.url_params().editing()
+                            {
+                                uistate.url_params().temp_text_pop();
+                            }
+                        },
+
+                        _ => {},
+                    }
+                },
                 KeyCode::Enter => {
                     match uistate.active_element() {
                         UIElement::URL => {
@@ -94,7 +125,40 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             call_api(uistate).unwrap();
                         },
                         UIElement::RequestTabsElem => {
-                            uistate.set_inside_request_tabs(true);
+                            if uistate.inside_request_tabs() {
+                                match uistate.active_request_tab() {
+                                    RequestTabs::UrlParams => {
+                                        let p = uistate.url_params();
+                                        let row = p.active_param_row();
+                                        let col = p.active_param_col();
+
+                                        if p.editing() {
+                                            if col == 0 {
+                                                p.update_param_name_with_temp(row);
+                                                p.set_editing(false);
+                                            }
+
+                                            if col == 1 {
+                                                p.update_param_value_with_temp(row);
+                                                p.set_editing(false);
+                                            }
+                                        } else {
+                                            if col == 0 {
+                                                p.set_temp_text(p.get_param_name(row));
+                                            } else if col == 1 {
+                                                p.set_temp_text(p.get_param_value(row));
+                                            } else {
+                                                p.temp_text_clear();
+                                            }
+
+                                            p.set_editing(true);
+                                        }
+                                    },
+                                    _ => {},
+                                }
+                            } else {
+                                uistate.set_inside_request_tabs(true);
+                            }
                         },
                         _ => {},
                     }

@@ -21,6 +21,8 @@ use crate::ui::state::{
     url_params::{ UrlParams, Param },
 };
 
+use self::state::url_params;
+
 /// Main rendering function called whenever the ui has to be re-rendered.
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let window_size = f.size();
@@ -281,11 +283,19 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     param_name_style = param_name_style.fg(Color::Cyan);
                 }
 
-                let param_name = TextInput::default()
+                let mut param_name = TextInput::default()
                     .label(String::from(" Name "))
                     .borders(Borders::ALL)
-                    .text(param.name().clone())
                     .border_style(param_name_style);
+
+                if params.editing()
+                    && params.active_param_row() == i as u16
+                    && params.active_param_col() == 0
+                {
+                    param_name = param_name.text(params.clone().temp_text());
+                } else {
+                    param_name = param_name.text(param.clone().name());
+                }
 
                 f.render_widget(param_name, name_rect);
 
@@ -295,11 +305,19 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     param_value_style = param_value_style.fg(Color::Cyan);
                 }
 
-                let param_value = TextInput::default()
+                let mut param_value = TextInput::default()
                     .label(String::from(" Value "))
                     .borders(Borders::ALL)
-                    .text(param.value().clone())
                     .border_style(param_value_style);
+
+                if params.editing()
+                    && params.active_param_row() == i as u16
+                    && params.active_param_col() == 1
+                {
+                    param_value = param_value.text(params.clone().temp_text());
+                } else {
+                    param_value = param_value.text(param.clone().value());
+                }
 
                 f.render_widget(param_value, value_rect);
 
