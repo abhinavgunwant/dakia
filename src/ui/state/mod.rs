@@ -5,7 +5,7 @@ pub mod url_params;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
-use url_params::{ Param, UrlParams };
+use url_params::UrlParams;
 
 /// Represents app state.
 #[derive(Clone, Default)]
@@ -21,9 +21,6 @@ pub struct UiState {
 
     /// The current request tab that is active.
     active_request_tab: RequestTabs,
-
-    /// Whether the user is editing something *within* some request tab
-    inside_request_tabs: bool,
 
     /// The response output of the request.
     /// **Note:** Value is `None` until the first request is made.
@@ -49,8 +46,9 @@ pub enum UIElement {
     Method = 0,
     URL = 1,
     SendButton = 2,
-    RequestTabsElem = 3,
-    ResponseArea = 4,
+    RequestTabsHead = 3,
+    RequestTabsElem = 4,
+    ResponseArea = 5,
 }
 
 impl Default for UIElement {
@@ -64,8 +62,9 @@ impl UIElement {
             0 => UIElement::Method,
             1 => UIElement::URL,
             2 => UIElement::SendButton,
-            3 => UIElement::RequestTabsElem,
-            4 => UIElement::ResponseArea,
+            3 => UIElement::RequestTabsHead,
+            4 => UIElement::RequestTabsElem,
+            5 => UIElement::ResponseArea,
             _ => UIElement::ResponseArea,
         }
     }
@@ -222,10 +221,6 @@ impl UiState {
         self.active_request_tab = rt;
     }
 
-    pub fn inside_request_tabs(&self) -> bool { self.inside_request_tabs }
-    pub fn set_inside_request_tabs(&mut self, irt: bool) {
-        self.inside_request_tabs = irt;
-    }
     pub fn activate_next_req_tab(&mut self) {
         let n = *self.active_request_tab() as u8;
         self.set_active_request_tab(RequestTabs::from_val(n + 1));

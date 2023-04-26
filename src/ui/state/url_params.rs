@@ -12,12 +12,6 @@ pub struct UrlParams {
     /// * 2 - the add new param button is highlighted
     /// * 3 - the remove param button is highlighted
     active_param_col: u8,
-
-    /// `true` when editing either a param name or value
-    editing: bool,
-
-    /// Temp text used as placeholder while user is editing a para field.
-    temp_text: String,
 }
 
 #[derive(Clone, Default)]
@@ -31,8 +25,6 @@ impl Default for UrlParams {
         params: vec![Param::default()],
         active_param_row: 0,
         active_param_col: 0,
-        editing: false,
-        temp_text: String::default(),
     } }
 }
 
@@ -66,6 +58,10 @@ impl UrlParams {
     /// Removes param in `pos` position.
     pub fn remove_param(&mut self, pos: u16) {
         self.params.remove(pos as usize);
+
+        if self.params.len() == 0 {
+            self.params.push(Param::default());
+        }
     }
 
     pub fn active_param_row(&self) -> u16 { self.active_param_row }
@@ -77,20 +73,12 @@ impl UrlParams {
         self.active_param_col = col;
     }
 
-    pub fn editing(&self) -> bool { self.editing }
-    pub fn set_editing(&mut self, editing: bool) { self.editing = editing }
-
-    pub fn temp_text(self) -> String { self.temp_text.clone() }
-    pub fn set_temp_text(&mut self, text:String) { self.temp_text = text; }
-    pub fn temp_text_append(&mut self, chr: char) { self.temp_text.push(chr); }
-    pub fn temp_text_pop(&mut self) { self.temp_text.pop(); }
-    pub fn temp_text_clear(&mut self) { self.temp_text.clear(); }
-    
-    pub fn update_param_name_with_temp(&mut self, param_index: u16) {
-        self.params[param_index as usize].set_name(self.temp_text.clone());
+    //TODO: implement append, pop and clear functions for param name/value
+    pub fn param_name_update(&mut self, param_index: u16, name: String) {
+        self.params[param_index as usize].set_name(name);
     }
-    pub fn update_param_value_with_temp(&mut self, param_index: u16) {
-        self.params[param_index as usize].set_value(self.temp_text.clone());
+    pub fn param_value_update(&mut self, param_index: u16, value: String) {
+        self.params[param_index as usize].set_value(value);
     }
 }
 

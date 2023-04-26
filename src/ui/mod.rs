@@ -137,15 +137,10 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let mut tab_head_style = Style::default().fg(Color::Gray);
     let mut tab_head_active_style = Style::default().fg(Color::Yellow);
 
-    if uistate.active_element() == &UIElement::RequestTabsElem {
-        if uistate.inside_request_tabs() {
-            tab_head_style = tab_head_style.fg(Color::Yellow);
-            tab_head_active_style = tab_head_active_style.fg(Color::Cyan);
-        } else {
-            tab_head_style = tab_head_style.fg(Color::Black).bg(Color::Yellow);
-            tab_head_active_style = tab_head_active_style.fg(Color::Black)
-                .bg(Color::Cyan);
-        }
+    if uistate.active_element() == &UIElement::RequestTabsHead {
+        tab_head_style = tab_head_style.fg(Color::Black).bg(Color::Yellow);
+        tab_head_active_style = tab_head_active_style.fg(Color::Black)
+            .bg(Color::Cyan);
     }
 
     let tab_head = Tabs::new(tab_titles)
@@ -212,11 +207,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
     let mut tab_style = Style::default();
 
     if uistate.active_element() == &UIElement::RequestTabsElem {
-        if uistate.inside_request_tabs() {
-            tab_style = tab_style.bg(Color::Reset).fg(Color::Yellow);
-        } else {
-            tab_style = tab_style.fg(Color::Black).bg(Color::Yellow);
-        }
+        tab_style = tab_style.bg(Color::Reset).fg(Color::Yellow);
     }
 
     let tab_content_box = Block::default()
@@ -237,8 +228,6 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
             let params = uistate.url_params();
             let mut content_rect = rect_inset.clone();
             content_rect.height = 3;
-
-            let text_input_style = Style::default();
 
             let content_chunks = Layout::default()
                 .direction(Direction::Horizontal)
@@ -269,6 +258,13 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                 let mut value_rect = param_chunks[1];
                 let mut add_param_chunk = param_actions_chunk[0];
                 let mut remove_param_chunk = param_actions_chunk[1];
+                let row_active: bool;
+
+                if params.active_param_row() == i as u16 {
+                    row_active = true;
+                } else {
+                    row_active = false;
+                }
 
                 if i > 0 {
                     name_rect.y += (3 * i) as u16;
@@ -279,51 +275,35 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
                 let mut param_name_style = Style::default().fg(Color::Gray);
 
-                if params.active_param_col() == 0 {
+                if row_active && params.active_param_col() == 0 {
                     param_name_style = param_name_style.fg(Color::Yellow);
                 }
 
-                let mut param_name = TextInput::default()
+                let param_name = TextInput::default()
                     .label(String::from(" Name "))
                     .borders(Borders::ALL)
+                    .text(param.clone().name())
                     .border_style(param_name_style);
-
-                if params.editing()
-                    && params.active_param_row() == i as u16
-                    && params.active_param_col() == 0
-                {
-                    param_name = param_name.text(params.clone().temp_text());
-                } else {
-                    param_name = param_name.text(param.clone().name());
-                }
 
                 f.render_widget(param_name, name_rect);
 
                 let mut param_value_style = Style::default().fg(Color::Gray);
 
-                if params.active_param_col() == 1 {
+                if row_active && params.active_param_col() == 1 {
                     param_value_style = param_value_style.fg(Color::Yellow);
                 }
 
-                let mut param_value = TextInput::default()
+                let param_value = TextInput::default()
                     .label(String::from(" Value "))
                     .borders(Borders::ALL)
+                    .text(param.clone().value())
                     .border_style(param_value_style);
-
-                if params.editing()
-                    && params.active_param_row() == i as u16
-                    && params.active_param_col() == 1
-                {
-                    param_value = param_value.text(params.clone().temp_text());
-                } else {
-                    param_value = param_value.text(param.clone().value());
-                }
 
                 f.render_widget(param_value, value_rect);
 
                 let mut param_add_style = Style::default().fg(Color::White);
 
-                if params.active_param_col() == 2 {
+                if row_active && params.active_param_col() == 2 {
                     param_add_style = param_add_style.fg(Color::Cyan);
                 }
 
@@ -344,7 +324,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
                 let mut param_remove_style = Style::default().fg(Color::White);
 
-                if params.active_param_col() == 3 {
+                if row_active && params.active_param_col() == 3 {
                     param_remove_style = param_remove_style.fg(Color::Cyan);
                 }
 

@@ -2,7 +2,11 @@ use std::io::Error;
 
 use crossterm::event::{ self, Event, KeyCode };
 use crate::{
-    ui::state::{ UiState, InputMode, EditorMode, UIElement, Method, request_tabs::RequestTabs },
+    ui::state::{
+        UiState, InputMode, EditorMode, UIElement, Method,
+        request_tabs::RequestTabs,
+        url_params::Param,
+    },
     api::call_api,
 };
 
@@ -16,21 +20,21 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Esc => {
-                    match uistate.active_element() {
-                        UIElement::RequestTabsElem => {
-                            if uistate.inside_request_tabs() {
-                                if uistate.url_params().editing() {
-                                    uistate.url_params().set_editing(false);
-                                } else {
-                                    uistate.set_inside_request_tabs(false);
-                                }
-                            } else {
+//                    match uistate.active_element() {
+//                        UIElement::RequestTabsElem => {
+//                            if uistate.inside_request_tabs() {
+//                                if uistate.url_params().editing() {
+//                                    uistate.url_params().set_editing(false);
+//                                } else {
+//                                    uistate.set_inside_request_tabs(false);
+//                                }
+//                            } else {
                                 return Ok(true);
-                            }
-                        },
-
-                        _ => {},
-                    }
+//                            }
+//                        },
+//
+//                        _ => {},
+//                    }
                 },
                 KeyCode::Char(c) => {
                     match uistate.active_element() {
@@ -88,8 +92,32 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                         },
                         UIElement::SendButton => {},
                         UIElement::RequestTabsElem => {
-                            if uistate.url_params().editing() {
-                                uistate.url_params().temp_text_append(c);
+                            let uparams = uistate.url_params();
+
+                            if uparams.active_param_col() == 0 {
+                                let mut s = uparams.get_param(
+                                    uparams.active_param_row()
+                                ).clone().name();
+
+                                s.push(c);
+
+                                uparams.param_name_update(
+                                    uparams.active_param_row(),
+                                    s,
+                                );
+                            }
+
+                            if uparams.active_param_col() == 1 {
+                                let mut s = uparams.get_param(
+                                    uparams.active_param_row()
+                                ).clone().value();
+
+                                s.push(c);
+
+                                uparams.param_value_update(
+                                    uparams.active_param_row(),
+                                    s,
+                                );
                             }
                         },
                         _ => {},
@@ -102,11 +130,32 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                         },
 
                         UIElement::RequestTabsElem => {
-                            if *uistate.active_request_tab() == RequestTabs::UrlParams
-                                && uistate.inside_request_tabs()
-                                && uistate.url_params().editing()
-                            {
-                                uistate.url_params().temp_text_pop();
+                            let uparams = uistate.url_params();
+
+                            if uparams.active_param_col() == 0 {
+                                let mut s = uparams.get_param(
+                                    uparams.active_param_row()
+                                ).clone().name();
+
+                                s.pop();
+
+                                uparams.param_name_update(
+                                    uparams.active_param_row(),
+                                    s,
+                                );
+                            }
+
+                            if uparams.active_param_col() == 1 {
+                                let mut s = uparams.get_param(
+                                    uparams.active_param_row()
+                                ).clone().value();
+
+                                s.pop();
+
+                                uparams.param_value_update(
+                                    uparams.active_param_row(),
+                                    s,
+                                );
                             }
                         },
 
@@ -125,66 +174,41 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             call_api(uistate).unwrap();
                         },
                         UIElement::RequestTabsElem => {
-                            if uistate.inside_request_tabs() {
-                                match uistate.active_request_tab() {
-                                    RequestTabs::UrlParams => {
-                                        let p = uistate.url_params();
-                                        let row = p.active_param_row();
-                                        let col = p.active_param_col();
+                            match uistate.active_request_tab() {
+                                RequestTabs::UrlParams => {
+                                    let p = uistate.url_params();
+                                    let row = p.active_param_row();
+                                    let col = p.active_param_col();
 
-                                        if p.editing() {
-                                            if col == 0 {
-                                                p.update_param_name_with_temp(row);
-                                                p.set_editing(false);
-                                            }
+                                    // The "+" or add parameter button
+                                    if col == 2 {
+                                        let new_param = Param::default();
+                                        p.insert_param(row+1, new_param);
+                                    }
 
-                                            if col == 1 {
-                                                p.update_param_value_with_temp(row);
-                                                p.set_editing(false);
-                                            }
-                                        } else {
-                                            if col == 0 {
-                                                p.set_temp_text(p.get_param_name(row));
-                                            } else if col == 1 {
-                                                p.set_temp_text(p.get_param_value(row));
-                                            } else {
-                                                p.temp_text_clear();
-                                            }
+                                    // The "-" or remove parameter button
+                                    if col == 3 {
+                                        p.remove_param(row);
 
-                                            p.set_editing(true);
+                                        if row > 0 {
+                                            p.set_active_param_row(row - 1);
                                         }
-                                    },
-                                    _ => {},
-                                }
-                            } else {
-                                uistate.set_inside_request_tabs(true);
+                                    }
+                                },
+                                _ => {},
                             }
                         },
                         _ => {},
                     }
                 }
                 KeyCode::Tab => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs()
-                    {
-                        uistate.activate_next_req_tab();
-                    } else {
-                        uistate.activate_next_element();
-                    }
+                    uistate.activate_next_element();
                 },
                 KeyCode::BackTab => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs()
-                    {
-                        uistate.activate_previous_req_tab();
-                    } else {
-                        uistate.activate_previous_element();
-                    }
+                    uistate.activate_previous_element();
                 },
                 KeyCode::Up => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs()
-                    {
+                    if *uistate.active_element() == UIElement::RequestTabsElem {
                         match uistate.active_request_tab() {
                             RequestTabs::UrlParams => {
                                 let mut apr = uistate.url_params()
@@ -200,40 +224,62 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     }
                 },
                 KeyCode::Right => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs()
-                    {
-                        match uistate.active_request_tab() {
-                            RequestTabs::UrlParams => {
-                                let params = uistate.url_params();
-                                let apr = params.active_param_col();
+                    match uistate.active_element() {
+                        UIElement::RequestTabsElem => {
+                            match uistate.active_request_tab() {
+                                RequestTabs::UrlParams => {
+                                    let params = uistate.url_params();
+                                    let apr = params.active_param_col();
 
-                                if apr < 4 {
-                                    params.set_active_param_col(apr + 1);
-                                }
-                            },
-                            _ => {},
-                        }
+                                    if apr < 4 {
+                                        params.set_active_param_col(apr + 1);
+                                    }
+                                },
+                                _ => {},
+                            }
+                        },
+                        UIElement::RequestTabsHead => {
+                            uistate.activate_next_req_tab();
+                        },
+                        _ => {},
                     }
                 },
                 KeyCode::Left => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem
-                        && uistate.inside_request_tabs()
-                    {
+                    match uistate.active_element() {
+                        UIElement::RequestTabsElem => {
+                            match uistate.active_request_tab() {
+                                RequestTabs::UrlParams => {
+                                    let params = uistate.url_params();
+                                    let apr = params.active_param_col();
+
+                                    if apr > 0 {
+                                        params.set_active_param_col(apr - 1);
+                                    }
+                                },
+                                _ => {},
+                            }
+                        },
+                        UIElement::RequestTabsHead => {
+                            uistate.activate_previous_req_tab();
+                        },
+                        _ => {},
+                    }
+                },
+                KeyCode::Down => {
+                    if *uistate.active_element() == UIElement::RequestTabsElem {
                         match uistate.active_request_tab() {
                             RequestTabs::UrlParams => {
-                                let params = uistate.url_params();
-                                let apr = params.active_param_col();
+                                let mut apr = uistate.url_params()
+                                    .active_param_row();
 
-                                if apr > 0 {
-                                    params.set_active_param_col(apr - 1);
+                                if apr <= 1000 {
+                                    apr += 1;
+                                    uistate.url_params().set_active_param_row(apr);
                                 }
                             },
                             _ => {},
                         }
                     }
-                },
-                KeyCode::Down => {
                 },
                 _ => {  },
             };
