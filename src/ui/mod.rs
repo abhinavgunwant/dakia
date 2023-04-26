@@ -277,10 +277,10 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     remove_param_chunk.y += (3 * i) as u16;
                 }
 
-                let mut param_name_style = text_input_style.clone();
+                let mut param_name_style = Style::default().fg(Color::Gray);
 
                 if params.active_param_col() == 0 {
-                    param_name_style = param_name_style.fg(Color::Cyan);
+                    param_name_style = param_name_style.fg(Color::Yellow);
                 }
 
                 let mut param_name = TextInput::default()
@@ -299,10 +299,10 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
                 f.render_widget(param_name, name_rect);
 
-                let mut param_value_style = text_input_style.clone();
+                let mut param_value_style = Style::default().fg(Color::Gray);
 
                 if params.active_param_col() == 1 {
-                    param_value_style = param_value_style.fg(Color::Cyan);
+                    param_value_style = param_value_style.fg(Color::Yellow);
                 }
 
                 let mut param_value = TextInput::default()
@@ -321,7 +321,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
                 f.render_widget(param_value, value_rect);
 
-                let mut param_add_style = text_input_style.clone();
+                let mut param_add_style = Style::default().fg(Color::White);
 
                 if params.active_param_col() == 2 {
                     param_add_style = param_add_style.fg(Color::Cyan);
@@ -342,7 +342,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     add_param_chunk
                 );
 
-                let mut param_remove_style = text_input_style.clone();
+                let mut param_remove_style = Style::default().fg(Color::White);
 
                 if params.active_param_col() == 3 {
                     param_remove_style = param_remove_style.fg(Color::Cyan);

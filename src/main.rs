@@ -10,7 +10,7 @@ use tui::{
 };
 
 use crossterm::{
-    event::{ DisableMouseCapture, EnableMouseCapture, },
+    event::{ DisableMouseCapture, EnableMouseCapture, PushKeyboardEnhancementFlags, KeyboardEnhancementFlags },
     execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, EnterAlternateScreen,
@@ -41,7 +41,7 @@ fn main() -> Result<(), io::Error> {
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
-        DisableMouseCapture
+        DisableMouseCapture,
     )?;
 
     terminal.show_cursor()?;
