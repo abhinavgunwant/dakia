@@ -86,17 +86,19 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     ti_size.x = 12;
     ti_size.width -= 12;
 
-    let mut url_border_style = Style::default();
-
-    if uistate.active_element() == &UIElement::URL {
-        url_border_style = url_border_style.fg(Color::Yellow);
-    }
+    //let url_border_style = Style::default();
 
     let url_input = TextInput::default()
         .label(String::from(" URL "))
         .borders(Borders::ALL)
         .text(uistate.url())
-        .border_style(url_border_style);
+        .border_style(Style::default())
+        .active_border_style(Style::default().fg(Color::Yellow))
+        .active(uistate.active_element() == &UIElement::URL);
+
+//    if uistate.active_element() == &UIElement::URL {
+//        url_input = url_input.border_style(url_border_style.fg(Color::Yellow));
+//    }
 
     f.render_widget(url_input, top_bar_chunks[1]);
 
@@ -225,7 +227,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
     match uistate.active_request_tab() {
         RequestTabs::UrlParams => {
-            let params = uistate.url_params();
+            let params = uistate.url_params_mut();
             let mut content_rect = rect_inset.clone();
             content_rect.height = 3;
 

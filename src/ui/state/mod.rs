@@ -2,16 +2,26 @@
 
 pub mod request_tabs;
 pub mod url_params;
+pub mod url;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
 use url_params::UrlParams;
+use url::Url;
 
 /// Represents app state.
 #[derive(Clone, Default)]
 pub struct UiState {
     /// The URL that user types in the URL bar.
     url: String,
+    
+    url_deconst: Url,
+
+    protocol: String,
+
+    host_name: String,
+
+    port: String,
 
     /// The current [EditorMode].
     editor_mode: EditorMode,
@@ -151,11 +161,14 @@ impl Default for InputMode {
 
 impl UiState {
     /// Gets the URL
-    pub fn url(&mut self) -> String { self.url.clone() }
+    pub fn url(&self) -> String { self.url.clone() }
     /// Sets the URL
     pub fn set_url(&mut self, url: String) { self.url = url; }
     /// Appends `chr` at the end of the URL.
     pub fn append_url(&mut self, chr: char) { self.url.push(chr); }
+    pub fn append_url_string(&mut self, url_string: String) {
+        self.url.push_str(url_string.as_str());
+    }
     /// Pops the last character of the URL.
     pub fn pop_url(&mut self) { self.url.pop(); }
 
@@ -235,7 +248,8 @@ impl UiState {
         self.set_active_request_tab(RequestTabs::from_val(n - 1));
     }
     
-    pub fn url_params(&mut self) -> &mut UrlParams {
+    pub fn url_params(&self) -> UrlParams { self.url_params.clone() }
+    pub fn url_params_mut(&mut self) -> &mut UrlParams {
         &mut self.url_params
     }
 }

@@ -1,6 +1,7 @@
 mod ui;
 mod user_input;
 mod api;
+mod utils;
 
 use std::io;
 

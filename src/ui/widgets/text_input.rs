@@ -1,7 +1,7 @@
 use tui::{
     buffer::Buffer,
     layout::{ Alignment, Rect },
-    widgets::{ BorderType, Borders, Block, Widget },
+    widgets::{ BorderType, Borders, Block, Widget, Paragraph },
     text::Span,
     style::{ Color, Style },
 };
@@ -16,8 +16,10 @@ pub struct TextInput {
     text_alignment: Alignment,
     borders: Borders,
     border_style: Style,
+    active_border_style: Style,
     border_type: BorderType,
     style: Style,
+    active: bool,
 }
 
 impl Default for TextInput {
@@ -27,9 +29,11 @@ impl Default for TextInput {
             text: None,
             text_alignment: Alignment::Left,
             borders: Borders::NONE,
-            border_style: Style::default().fg(Color::White),
+            border_style: Style::default(),
+            active_border_style: Style::default(),
             border_type: BorderType::Plain,
             style: Default::default(),
+            active: false,
         }
     }
 }
@@ -40,35 +44,57 @@ impl Widget for TextInput {
             return;
         }
 
-        match self.clone().get_label() {
+        let mut text_area = area.clone();
+
+        text_area.y += 1;
+        text_area.x += 2;
+        text_area.width -= 4;
+
+        match self.get_label() {
             Some(label) => {
-                let block = Block::default()
+                let mut block = Block::default()
                     .borders(Borders::ALL)
                     .title(label.as_str())
-                    .border_type(BorderType::Rounded)
-                    .style(*self.get_border_style());
+                    .border_type(BorderType::Rounded);
+
+                if self.is_active() {
+                    block = block.style(self.get_active_border_style());
+                } else {
+                    block = block.style(*self.get_border_style());
+                }
 
                 block.render(area, buf);
             },
             None => {},
         }
 
-        match self.clone().get_text() {
+        match self.get_text() {
             Some (txt) => {
-                let mut text_area = area.clone();
+                if self.is_active() {
+                    let mut txt_ = txt.clone();
+                    txt_.push('\u{2502}');
 
-                text_area.y += 1;
-                text_area.x += 2;
-                text_area.width -= 4;
-
-                let text = Block::default()
-                    .title(Span::raw(txt.as_str()))
-                    .style(*self.get_style());
-
-                text.render(text_area, buf);
+                    let text = Paragraph::new(
+                        Span::styled(txt_, self.get_active_border_style())
+                    );
+                    text.render(text_area, buf);
+                } else {
+                    let text = Paragraph::new(txt.clone())
+                        .style(*self.get_border_style());
+                    text.render(text_area, buf);
+                }
             },
 
-            None => {},
+            None => {
+                if self.is_active() {
+                    let txt = String::from('\u{2502}');
+
+                    let text = Paragraph::new(
+                        Span::styled(txt, self.get_active_border_style())
+                    );
+                    text.render(text_area, buf);
+                }
+            },
         }
     }
 }
@@ -80,13 +106,14 @@ impl PartialEq for TextInput {
             && self.borders == other.borders
             && self.border_style == other.border_style
             && self.border_type == other.border_type
+            && self.active_border_style == other.active_border_style
             && self.style == other.style
     }
 }
 
 
 impl TextInput {
-    pub fn get_label(self) -> Option<String> { self.label }
+    pub fn get_label(&self) -> &Option<String> { &self.label }
 
     pub fn label(mut self, label: String) -> TextInput {
         if label.len() > 0 {
@@ -98,7 +125,7 @@ impl TextInput {
         self
     }
 
-    pub fn get_text(self) -> Option<String> { self.text }
+    pub fn get_text(&self) -> &Option<String> { &self.text }
 
     pub fn text(mut self, text_str: String) -> TextInput {
         if text_str.len() > 0 {
@@ -118,14 +145,18 @@ impl TextInput {
     }
 
     pub fn get_border_style(&self) -> &Style { &self.border_style }
-
     pub fn border_style(mut self, style: Style) -> TextInput {
         self.border_style = style;
         self
     }
 
-    pub fn get_style(&self) -> &Style { &self.style }
+    pub fn get_active_border_style(&self) -> Style { self.active_border_style }
+    pub fn active_border_style(mut self, style: Style) -> TextInput {
+        self.active_border_style = style;
+        self
+    }
 
+    pub fn get_style(&self) -> &Style { &self.style }
     pub fn style(mut self, style: Style) -> TextInput {
         self.style = style;
         self
@@ -142,6 +173,12 @@ impl TextInput {
 
     pub fn border_type(mut self, border_type: BorderType) -> TextInput {
         self.border_type = border_type;
+        self
+    }
+
+    pub fn is_active(&self) -> bool { self.active }
+    pub fn active(mut self, active: bool) -> TextInput {
+        self.active = active;
         self
     }
 }
