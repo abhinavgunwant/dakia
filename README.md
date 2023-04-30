@@ -12,7 +12,7 @@ cargo run
 ```
 ### Build
 ```bash
-cargo build --release
+cargo build
 ```
 or, for an optimized build:
 ```bash
