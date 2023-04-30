@@ -18,10 +18,7 @@ use widgets::{
 };
 use crate::ui::state::{
     UiState, Method, UIElement, request_tabs::RequestTabs,
-    url_params::{ UrlParams, Param },
 };
-
-use self::state::url_params;
 
 /// Main rendering function called whenever the ui has to be re-rendered.
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
@@ -227,7 +224,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
     match uistate.active_request_tab() {
         RequestTabs::UrlParams => {
-            let params = uistate.url_params_mut();
+            let params = uistate.query_params_ui();
             let mut content_rect = rect_inset.clone();
             content_rect.height = 3;
 
@@ -255,7 +252,8 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                 ].as_ref())
                 .split(content_chunks[1]);
             
-            for (i, param) in params.params().iter().enumerate() {
+            //for (i, param) in params.params().iter().enumerate() {
+            for (i, param) in uistate.url_deconst().query_params().iter().enumerate() {
                 let mut name_rect = param_chunks[0];
                 let mut value_rect = param_chunks[1];
                 let mut add_param_chunk = param_actions_chunk[0];
@@ -284,7 +282,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                 let param_name = TextInput::default()
                     .label(String::from(" Name "))
                     .borders(Borders::ALL)
-                    .text(param.clone().name())
+                    .text(param.name())
                     .border_style(param_name_style);
 
                 f.render_widget(param_name, name_rect);
@@ -298,7 +296,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                 let param_value = TextInput::default()
                     .label(String::from(" Value "))
                     .borders(Borders::ALL)
-                    .text(param.clone().value())
+                    .text(param.value())
                     .border_style(param_value_style);
 
                 f.render_widget(param_value, value_rect);

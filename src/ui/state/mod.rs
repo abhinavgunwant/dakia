@@ -1,12 +1,13 @@
 //! State-related things
 
 pub mod request_tabs;
-pub mod url_params;
+pub mod query_param;
+pub mod query_params_ui;
 pub mod url;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
-use url_params::UrlParams;
+use query_params_ui::QueryParamsUi;
 use url::Url;
 
 /// Represents app state.
@@ -15,13 +16,8 @@ pub struct UiState {
     /// The URL that user types in the URL bar.
     url: String,
     
+    /// The deconstructed URL
     url_deconst: Url,
-
-    protocol: String,
-
-    host_name: String,
-
-    port: String,
 
     /// The current [EditorMode].
     editor_mode: EditorMode,
@@ -46,8 +42,8 @@ pub struct UiState {
     /// Current [InputMode].
     input_mode: InputMode,
 
-    /// HTTP url parameters
-    url_params: UrlParams,
+    /// HTTP url query parameters
+    query_params_ui: QueryParamsUi,
 }
 
 /// An enum representing all the ui elements that can be seen on the screen.
@@ -171,6 +167,13 @@ impl UiState {
     }
     /// Pops the last character of the URL.
     pub fn pop_url(&mut self) { self.url.pop(); }
+//    pub fn update_url_with_deconst(&mut self) {
+//        let new_url = self.url_deconst().to_string();
+//        self.set_url(new_url);
+//    }
+
+    pub fn url_deconst(&self) -> &Url { &self.url_deconst }
+    pub fn url_deconst_mut(&mut self) -> &mut Url { &mut self.url_deconst }
 
     /// Gets the current [Method].
     pub fn method(&mut self) -> Method { self.method.clone() }
@@ -248,9 +251,9 @@ impl UiState {
         self.set_active_request_tab(RequestTabs::from_val(n - 1));
     }
     
-    pub fn url_params(&self) -> UrlParams { self.url_params.clone() }
-    pub fn url_params_mut(&mut self) -> &mut UrlParams {
-        &mut self.url_params
+    pub fn query_params_ui(&self) -> QueryParamsUi { self.query_params_ui.clone() }
+    pub fn query_params_ui_mut(&mut self) -> &mut QueryParamsUi {
+        &mut self.query_params_ui
     }
 }
 
