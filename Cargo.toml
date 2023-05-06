@@ -9,5 +9,6 @@ edition = "2021"
 tui = "0.19"
 crossterm = "0.25"
 reqwest = { version = "0.11", features = ["blocking", "json"] }
+jsonxf = "1.1"
 #tokio = { version = "1", features = ["full"] }
 

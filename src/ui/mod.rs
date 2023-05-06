@@ -166,21 +166,55 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
 
     f.render_widget(response, mid_pane[1]);
 
-    match uistate.response() {
-        Some(content) => {
-            let mut rect = mid_pane[1].clone();
-            rect.y += 1;
-            rect.height -= 2;
-            rect.x += 1;
-            rect.width -= 2;
+    if uistate.response().initialized() {
+        let rect = Rect::new(
+            mid_pane[1].x + 1,
+            mid_pane[1].y + 1,
+            mid_pane[1].width - 2,
+            mid_pane[1].height - 2,
+        );
 
-            let s: Vec<String> = string_chunks(content, rect.width as usize);
+        let content_height = rect.height as usize;
+        let max_len = rect.width as usize;
+        let req_counter = uistate.response().cache_req_counter();
 
-            let response_block = Paragraph::new(string_chunks_to_spans(&s));
+        if uistate.request_counter() != req_counter {
+            let mut r_lines: Vec<String> = vec![];
 
-            f.render_widget(response_block, rect);
-        },
-        None => {},
+            for line in uistate.response().response().iter() {
+                if line.len() > max_len {
+                    let mut line_divided = string_chunks(line, max_len);
+
+                    r_lines.append(&mut line_divided);
+                } else {
+                    r_lines.push(line.clone());
+                }
+            }
+
+            uistate.response_mut().set_response(r_lines);
+            uistate.response_mut().set_cache_req_counter(req_counter);
+        } else {
+            println!("hit");
+        }
+
+        let response_text = uistate.response().response();
+        let mut response_text_start: usize = 0;
+        let mut response_text_end: usize = response_text.len();
+
+        if response_text.len() > content_height {
+            response_text_start = uistate.response().scroll_pos() as usize;
+            response_text_end = response_text_start + content_height;
+
+            if response_text_end > response_text.len() {
+                response_text_end = response_text.len();
+            }
+        }
+
+        let response_block = Paragraph::new(string_chunks_to_spans(
+            &response_text[response_text_start..response_text_end]
+        ));
+
+        f.render_widget(response_block, rect);
     }
 
     // TODO: make the status bar/block show the ui element active/selected
@@ -365,7 +399,8 @@ fn string_chunks(input: &String, max_width: usize) -> Vec<String> {
 }
 
 /// Converts the string chunks to a vector of `Spans`.
-fn string_chunks_to_spans<'a>(input: &'a Vec<String>) -> Vec<Spans<'a>> {
+//fn string_chunks_to_spans<'a>(input: &'a Vec<String>) -> Vec<Spans<'a>> {
+fn string_chunks_to_spans<'a>(input: &[String]) -> Vec<Spans<'a>> {
     let mut spans: Vec<Spans> = vec![];
 
     for chunk in input.iter() {

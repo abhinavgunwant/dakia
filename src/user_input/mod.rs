@@ -211,19 +211,42 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     uistate.activate_previous_element();
                 },
                 KeyCode::Up => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem {
-                        match uistate.active_request_tab() {
-                            RequestTabs::UrlParams => {
-                                let mut apr = uistate.query_params_ui_mut()
-                                    .active_param_row();
+                    match uistate.active_element() {
+                        UIElement::RequestTabsElem => {
+                            match uistate.active_request_tab() {
+                                RequestTabs::UrlParams => {
+                                    let mut apr = uistate.query_params_ui_mut()
+                                        .active_param_row();
 
-                                if apr != 0 {
-                                    apr -= 1;
-                                    uistate.query_params_ui_mut().set_active_param_row(apr);
-                                }
-                            },
-                            _ => {},
-                        }
+                                    if apr != 0 {
+                                        apr -= 1;
+                                        uistate.query_params_ui_mut().set_active_param_row(apr);
+                                    }
+                                },
+                                _ => {},
+                            }
+
+                        },
+
+                        UIElement::ResponseArea => {
+                            let pos = uistate.response().scroll_pos();
+                            let mut scroll_by = 1;
+
+                            if key.modifiers == KeyModifiers::CONTROL {
+                                scroll_by = 4;
+                            }
+
+                            let new_pos: i32 = (pos as i32) - scroll_by;
+
+                            if new_pos >= 0 {
+                                uistate.response_mut()
+                                    .set_scroll_pos(new_pos as u16);
+                            } else {
+                                uistate.response_mut().set_scroll_pos(0);
+                            }
+                        },
+
+                        _ => {},
                     }
                 },
                 KeyCode::Right => {
@@ -273,24 +296,42 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     }
                 },
                 KeyCode::Down => {
-                    if *uistate.active_element() == UIElement::RequestTabsElem {
-                        match uistate.active_request_tab() {
-                            RequestTabs::UrlParams => {
-                                if key.modifiers == KeyModifiers::CONTROL {
-                                    let mut apr = uistate.query_params_ui_mut()
-                                        .active_param_row();
+                    match uistate.active_element() {
+                        UIElement::RequestTabsElem => {
+                            match uistate.active_request_tab() {
+                                RequestTabs::UrlParams => {
+                                    if key.modifiers == KeyModifiers::CONTROL {
+                                        let mut apr = uistate.query_params_ui_mut()
+                                            .active_param_row();
 
-                                    if apr <= 1000 {
-                                        apr += 1;
+                                        if apr <= 1000 {
+                                            apr += 1;
 
-                                        if apr < uistate.url_deconst().query_params().len() as u16 {
-                                            uistate.query_params_ui_mut().set_active_param_row(apr);
+                                            if apr < uistate.url_deconst().query_params().len() as u16 {
+                                                uistate.query_params_ui_mut().set_active_param_row(apr);
+                                            }
                                         }
                                     }
-                                }
-                            },
-                            _ => {},
+                                },
+                                _ => {},
+                            }
+                        },
+
+                        UIElement::ResponseArea => {
+                            let pos = uistate.response().scroll_pos();
+                            let mut scroll_by = 1;
+
+                            if key.modifiers == KeyModifiers::CONTROL {
+                                scroll_by = 4;
+                            }
+
+                            let new_pos = pos + scroll_by;
+
+                            if new_pos < uistate.response().response().len() as u16 {
+                                uistate.response_mut().set_scroll_pos(new_pos);
+                            }
                         }
+                        _ => {},
                     }
                 },
                 _ => {  },

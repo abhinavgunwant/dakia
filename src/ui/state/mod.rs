@@ -4,11 +4,14 @@ pub mod request_tabs;
 pub mod query_param;
 pub mod query_params_ui;
 pub mod url;
+pub mod response;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
 use query_params_ui::QueryParamsUi;
 use url::Url;
+
+use self::response::Response;
 
 /// Represents app state.
 #[derive(Clone, Default)]
@@ -28,9 +31,14 @@ pub struct UiState {
     /// The current request tab that is active.
     active_request_tab: RequestTabs,
 
+    /// Counts the current request.
+    /// Incremented with each request. Used for re-caching the response.
+    request_counter: u8,
+
     /// The response output of the request.
     /// **Note:** Value is `None` until the first request is made.
-    response: Option<String>,
+    //response: Option<Vec<String>>,
+    response: Response,
 
     /// Status code of the request.
     /// **Note:** Value is `None` until the first request is made.
@@ -220,8 +228,13 @@ impl UiState {
         self.set_active_element(UIElement::from_val(n - 1));
     }
 
-    pub fn response(&self) -> &Option<String> { &self.response }
-    pub fn set_response(&mut self, resp: Option<String>) { self.response = resp; }
+//    pub fn response(&self) -> &Option<Vec<String>> { &self.response }
+//    pub fn set_response(&mut self, resp: Option<Vec<String>>) { self.response = resp; }
+    pub fn response(&self) -> &Response { &self.response }
+    pub fn response_mut(&mut self) -> &mut Response { &mut self.response }
+
+    pub fn request_counter(&self) -> u8 { self.request_counter }
+    pub fn increment_request_counter(&mut self) { self.request_counter += 1 }
 
     pub fn response_status_code(&self) -> &Option<u16> {
         &self.response_status_code
