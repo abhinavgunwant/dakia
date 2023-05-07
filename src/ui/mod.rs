@@ -208,6 +208,41 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
             if response_text_end > response_text.len() {
                 response_text_end = response_text.len();
             }
+
+            // Draw a scrollbar 
+            let scrollbar = Block::default()
+                .borders(Borders::NONE)
+                .style(Style::default().bg(Color::DarkGray));
+
+            let scrollbar_rect = Rect::new(rect.width, rect.y, 1, rect.height);
+
+            f.render_widget(scrollbar, scrollbar_rect);
+
+            let total_len = response_text.len() as f32;
+            let disp_cntnt_len = content_height as f32;
+
+            // calculate scrolbar thumb size
+            let scrollbar_thumb_height: f32 = (disp_cntnt_len / total_len) * disp_cntnt_len;
+
+            // calculate scrollbar thumb pos from top of scrollbar
+            let scrollbar_thumb_pos: f32 =
+                (
+                    (response_text_end as f32 / total_len)
+                    * disp_cntnt_len
+                ) - scrollbar_thumb_height;
+
+            let scrollbar_thumb = Block::default()
+                .borders(Borders::NONE)
+                .style(Style::default().bg(Color::White));
+
+            f.render_widget(
+                scrollbar_thumb,
+                Rect::new(
+                    scrollbar_rect.x,
+                    scrollbar_rect.y + scrollbar_thumb_pos.floor() as u16,
+                    1,
+                    scrollbar_thumb_height.ceil() as u16
+            ));
         }
 
         let response_block = Paragraph::new(string_chunks_to_spans(
@@ -250,17 +285,22 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
     f.render_widget(tab_content_box, rect);
 
-    let mut rect_inset = rect;
-    rect_inset.x += 2;
-    rect_inset.y += 1;
-    rect_inset.width -= 4;
-    rect_inset.height -= 2;
+    let rect_inset = Rect::new(
+        rect.x + 2,
+        rect.y + 1,
+        rect.width - 4,
+        rect.height - 2
+    );
 
     match uistate.active_request_tab() {
         RequestTabs::UrlParams => {
             let params = uistate.query_params_ui();
-            let mut content_rect = rect_inset.clone();
-            content_rect.height = 3;
+            let content_rect = Rect::new(
+                rect_inset.x,
+                rect_inset.y,
+                rect_inset.width,
+                3,
+            );
 
             let content_chunks = Layout::default()
                 .direction(Direction::Horizontal)
@@ -285,20 +325,13 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     Constraint::Percentage(50),
                 ].as_ref())
                 .split(content_chunks[1]);
-            
-            //for (i, param) in params.params().iter().enumerate() {
+
             for (i, param) in uistate.url_deconst().query_params().iter().enumerate() {
                 let mut name_rect = param_chunks[0];
                 let mut value_rect = param_chunks[1];
                 let mut add_param_chunk = param_actions_chunk[0];
                 let mut remove_param_chunk = param_actions_chunk[1];
-                let row_active: bool;
-
-                if params.active_param_row() == i as u16 {
-                    row_active = true;
-                } else {
-                    row_active = false;
-                }
+                let row_active: bool = params.active_param_row() == (i as u16);
 
                 if i > 0 {
                     name_rect.y += (3 * i) as u16;
@@ -371,6 +404,7 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
                     Label::default().text("-").style(param_remove_style),
                     remove_param_chunk,
                 );
+
             }
         },
         RequestTabs::Authorization => {
