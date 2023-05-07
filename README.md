@@ -1,6 +1,8 @@
 # dakia
 
-Work in progress, please check later!
+Tui REST API testing utility.
+
+**Note:** Work in progress, keep checking this repo for the very first release!
 
 ## Builds and Run
 This project is not in a state to be released with binaries. Till then please
