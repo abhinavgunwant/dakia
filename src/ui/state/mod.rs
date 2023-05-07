@@ -5,13 +5,14 @@ pub mod query_param;
 pub mod query_params_ui;
 pub mod url;
 pub mod response;
+pub mod app_status;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
 use query_params_ui::QueryParamsUi;
 use url::Url;
 
-use self::response::Response;
+use self::{response::Response, app_status::AppStatus};
 
 /// Represents app state.
 #[derive(Clone, Default)]
@@ -52,6 +53,9 @@ pub struct UiState {
 
     /// HTTP url query parameters
     query_params_ui: QueryParamsUi,
+
+    app_status: AppStatus,
+    app_error: Option<String>,
 }
 
 /// An enum representing all the ui elements that can be seen on the screen.
@@ -267,6 +271,16 @@ impl UiState {
     pub fn query_params_ui(&self) -> QueryParamsUi { self.query_params_ui.clone() }
     pub fn query_params_ui_mut(&mut self) -> &mut QueryParamsUi {
         &mut self.query_params_ui
+    }
+
+    pub fn app_status(&self) -> &AppStatus { &self.app_status }
+    pub fn set_app_status(&mut self, app_status: AppStatus) {
+        self.app_status = app_status;
+    }
+
+    pub fn app_error(&self) -> &Option<String> { &self.app_error }
+    pub fn set_app_error(&mut self, error_str: String) {
+        self.app_error = Some(error_str);
     }
 }
 

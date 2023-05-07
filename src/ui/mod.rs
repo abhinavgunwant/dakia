@@ -20,6 +20,8 @@ use crate::ui::state::{
     UiState, Method, UIElement, request_tabs::RequestTabs,
 };
 
+use self::state::app_status::AppStatus;
+
 /// Main rendering function called whenever the ui has to be re-rendered.
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     let window_size = f.size();
@@ -252,21 +254,51 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
         f.render_widget(response_block, rect);
     }
 
+    let mut render_status = true;
+    let mut status_style = Style::default();
+    let mut status_span = Span::raw("");
     // TODO: make the status bar/block show the ui element active/selected
-    match uistate.response_status_code() {
-        Some(number) => {
-            let status_block = Block::default().borders(Borders::NONE)
-                .title(vec![
-                    Span::styled(
-                        " Done ",
-                        Style::default().bg(Color::Green).fg(Color::Black)
-                    ),
-                    Span::raw(format!(" Status: {}", number)),
-                ]);
-
-            f.render_widget(status_block, outer_chunks[1]);
+    match uistate.app_status() {
+        AppStatus::PROCESSING => {
+            status_style = status_style.bg(Color::Yellow).fg(Color::Black);
         },
-        None => {},
+        AppStatus::DONE => {
+            match uistate.response_status_code() {
+                Some(req_status_code) => {
+                    status_span = Span::raw(
+                        format!(" Status: {}", req_status_code)
+                    );
+                },
+
+                None => {},
+            }
+
+            status_style = status_style.bg(Color::Green).fg(Color::Black);
+        },
+        AppStatus::ERROR => {
+            status_style = status_style.bg(Color::Red).fg(Color::White);
+
+            match uistate.app_error() {
+                Some(error_string) => {
+                    status_span = Span::raw(format!(" {}", error_string));
+                },
+                None => {},
+            }
+        },
+        AppStatus::STARTUP => { render_status = false; },
+    }
+
+    if render_status {
+        let status_block = Block::default().borders(Borders::NONE)
+            .title(vec![
+                Span::styled(
+                    format!(" {} ", uistate.app_status().to_str()),
+                    status_style
+                ),
+                status_span,
+            ]);
+
+        f.render_widget(status_block, outer_chunks[1]);
     }
 }
 

@@ -5,7 +5,7 @@ use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement, Method,
         request_tabs::RequestTabs,
-        query_param::QueryParam,
+        query_param::QueryParam, app_status::AppStatus,
     },
     api::call_api,
 };
@@ -158,6 +158,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                 KeyCode::Enter => {
                     match uistate.active_element() {
                         UIElement::URL => {
+                            uistate.set_app_status(AppStatus::PROCESSING);
+
                             match call_api(uistate) {
                                 Ok(()) => {},
                                 Err(_e) => {},

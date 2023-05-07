@@ -2,7 +2,7 @@ use std::error::Error;
 use reqwest::{blocking::{ get, Response }, header};
 
 use jsonxf::pretty_print;
-use crate::ui::state::UiState;
+use crate::ui::state::{UiState, app_status::AppStatus};
 
 // CT: content-type
 const CT_JSON: &str = "application/json";
@@ -16,7 +16,8 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
         },
 
         Err(e) => {
-            eprintln!("Error: {}", e)
+            uistate.set_app_status(AppStatus::ERROR);
+            uistate.set_app_error(e.without_url().to_string());
         },
     }
 
@@ -26,6 +27,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
 fn process_response(resp: Response, uistate: &mut UiState) {
     let headers = resp.headers();
     let mut is_json = false;
+    let mut error = false;
 
     if headers.contains_key(header::CONTENT_TYPE) {
         let hdr = String::from(
@@ -49,7 +51,13 @@ fn process_response(resp: Response, uistate: &mut UiState) {
             }
         },
 
-        Err(_e) => {},
+        Err(_e) => { error = true; },
+    }
+
+    if error {
+        uistate.set_app_status(AppStatus::ERROR);
+    } else {
+        uistate.set_app_status(AppStatus::DONE);
     }
 }
 
