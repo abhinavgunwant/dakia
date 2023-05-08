@@ -1,21 +1,22 @@
 //! State-related things
 
 pub mod request_tabs;
-pub mod query_param;
-pub mod query_params_ui;
+pub mod kv_data;
+pub mod kv_tab_state;
 pub mod url;
 pub mod response;
 pub mod app_status;
 
 use std::fmt::{ Display, Formatter, Result as FResult };
 use request_tabs::RequestTabs;
-use query_params_ui::QueryParamsUi;
+use kv_tab_state::KVTabState;
+use kv_data::KVData;
 use url::Url;
 
 use self::{response::Response, app_status::AppStatus};
 
 /// Represents app state.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct UiState {
     /// The URL that user types in the URL bar.
     url: String,
@@ -35,10 +36,11 @@ pub struct UiState {
     /// Counts the current request.
     /// Incremented with each request. Used for re-caching the response.
     request_counter: u8,
+    request_headers: Vec<KVData>,
+    request_headers_ui: KVTabState,
 
     /// The response output of the request.
     /// **Note:** Value is `None` until the first request is made.
-    //response: Option<Vec<String>>,
     response: Response,
 
     /// Status code of the request.
@@ -52,7 +54,7 @@ pub struct UiState {
     input_mode: InputMode,
 
     /// HTTP url query parameters
-    query_params_ui: QueryParamsUi,
+    query_params_ui: KVTabState,
 
     app_status: AppStatus,
     app_error: Option<String>,
@@ -167,6 +169,28 @@ impl Default for InputMode {
     fn default() -> Self { InputMode::Normal }
 }
 
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            url: String::default(),
+            url_deconst: Url::default(),
+            editor_mode: EditorMode::default(),
+            method: Method::default(),
+            active_request_tab: RequestTabs::default(),
+            request_counter: 0,
+            request_headers: vec![KVData::default()],
+            request_headers_ui: KVTabState::default(),
+            response: Response::default(),
+            response_status_code: None,
+            active_element: UIElement::default(),
+            input_mode: InputMode::default(),
+            query_params_ui: KVTabState::default(),
+            app_status: AppStatus::default(),
+            app_error: None,
+        }
+    }
+}
+
 impl UiState {
     /// Gets the URL
     pub fn url(&self) -> String { self.url.clone() }
@@ -179,10 +203,6 @@ impl UiState {
     }
     /// Pops the last character of the URL.
     pub fn pop_url(&mut self) { self.url.pop(); }
-//    pub fn update_url_with_deconst(&mut self) {
-//        let new_url = self.url_deconst().to_string();
-//        self.set_url(new_url);
-//    }
 
     pub fn url_deconst(&self) -> &Url { &self.url_deconst }
     pub fn url_deconst_mut(&mut self) -> &mut Url { &mut self.url_deconst }
@@ -232,8 +252,6 @@ impl UiState {
         self.set_active_element(UIElement::from_val(n - 1));
     }
 
-//    pub fn response(&self) -> &Option<Vec<String>> { &self.response }
-//    pub fn set_response(&mut self, resp: Option<Vec<String>>) { self.response = resp; }
     pub fn response(&self) -> &Response { &self.response }
     pub fn response_mut(&mut self) -> &mut Response { &mut self.response }
 
@@ -267,9 +285,23 @@ impl UiState {
 
         self.set_active_request_tab(RequestTabs::from_val(n - 1));
     }
+
+    pub fn request_headers(&self) -> &Vec<KVData> { &self.request_headers }
+    pub fn request_header_mut(&mut self) -> &mut Vec<KVData> {
+        &mut self.request_headers
+    }
     
-    pub fn query_params_ui(&self) -> QueryParamsUi { self.query_params_ui.clone() }
-    pub fn query_params_ui_mut(&mut self) -> &mut QueryParamsUi {
+    pub fn request_headers_ui(&self) -> KVTabState {
+        self.request_headers_ui.clone()
+    }
+    pub fn request_headers_ui_mut(&mut self) -> &mut KVTabState {
+        &mut self.request_headers_ui
+    }
+    
+    pub fn query_params_ui(&self) -> KVTabState {
+        self.query_params_ui.clone()
+    }
+    pub fn query_params_ui_mut(&mut self) -> &mut KVTabState {
         &mut self.query_params_ui
     }
 

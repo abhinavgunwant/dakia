@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter, Result};
-use crate::ui::state::query_param::QueryParam;
+use crate::ui::state::kv_data::KVData;
 
 /// Deconstructs url
 #[derive(Clone)]
@@ -8,7 +8,7 @@ pub struct Url {
     host: String,
     port: u16,
     path: String,
-    query_params: Vec<QueryParam>,
+    query_params: Vec<KVData>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -42,7 +42,7 @@ impl Default for Url {
             host: String::default(),
             port: 80,
             path: String::default(),
-            query_params: vec! [ QueryParam::default() ]
+            query_params: vec! [ KVData::default() ]
         }
     }
 }
@@ -213,12 +213,12 @@ impl Url {
 
         for qp_str_pair in qp_split.iter() {
             if !qp_str_pair.is_empty() {
-                self.query_params.push(QueryParam::from_str(qp_str_pair));
+                self.query_params.push(KVData::from_str(qp_str_pair));
             }
         }
 
         if self.query_params.is_empty() {
-            self.query_params.push(QueryParam::default());
+            self.query_params.push(KVData::default());
         }
     }
 
@@ -244,14 +244,14 @@ impl Url {
     pub fn host(&self) -> String { self.host.clone() }
     pub fn port(&self) -> u16 { self.port }
     pub fn path(&self) -> String { self.path.clone() }
-    pub fn query_params(&self) -> &Vec<QueryParam> { &self.query_params }
+    pub fn query_params(&self) -> &Vec<KVData> { &self.query_params }
 
-    pub fn get_param(&mut self, indx: u16) -> Option<&mut QueryParam> {
+    pub fn get_param(&mut self, indx: u16) -> Option<&mut KVData> {
         self.query_params.get_mut(indx as usize)
     }
     /// Inserts a new param to the `pos` position in `params`.
     /// Param limit is set to `1000`.
-    pub fn insert_param(&mut self, pos: u16, param: QueryParam) {
+    pub fn insert_param(&mut self, pos: u16, param: KVData) {
         if self.query_params.len() == 1000 || pos == 1000{
             return;
         }
@@ -263,7 +263,7 @@ impl Url {
         self.query_params.remove(pos as usize);
 
         if self.query_params.len() == 0 {
-            self.query_params.push(QueryParam::default());
+            self.query_params.push(KVData::default());
         }
     }
 }

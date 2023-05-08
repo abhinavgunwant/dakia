@@ -4,8 +4,7 @@ use crossterm::event::{ self, Event, KeyCode, KeyModifiers };
 use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement, Method,
-        request_tabs::RequestTabs,
-        query_param::QueryParam, app_status::AppStatus,
+        request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
     },
     api::call_api,
 };
@@ -20,19 +19,43 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
         if let Event::Key(key) = event::read()? {
             let mut update_url: bool = false;
 
-            match key.code {
-                KeyCode::Esc => { return Ok(true); },
+            if key.code == KeyCode::Esc {
+                return Ok(true);
+            }
 
-                KeyCode::Char(c) => {
-                    match uistate.active_element() {
-                        UIElement::URL => {
+            match uistate.active_element() {
+                UIElement::URL => {
+                    match key.code {
+                        KeyCode::Char(c) => {
                             uistate.append_url(c);
                             let url = uistate.url();
 
-                            uistate.url_deconst_mut()
-                                .update(url);
-                        },
+                            uistate.url_deconst_mut().update(url);
+                        }
 
+                        KeyCode::Backspace => {
+                            uistate.pop_url();
+                        }
+
+                        KeyCode::Enter => {
+                            uistate.set_app_status(AppStatus::PROCESSING);
+
+                            match call_api(uistate) {
+                                Ok(()) => {},
+                                Err(_e) => {},
+                            }
+                        }
+
+                        _ => {}
+                    }
+                }
+
+                _ => {}
+            }
+
+            match key.code {
+                KeyCode::Char(c) => {
+                    match uistate.active_element() {
                         UIElement::Method => {
                             match c.to_digit(10) {
                                 Some(mut num) => {
@@ -87,16 +110,16 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                         UIElement::SendButton => {},
                         UIElement::RequestTabsElem => {
                             let uparams = uistate.query_params_ui();
-                            let active_col = uparams.active_param_col();
-                            let active_row = uparams.active_param_row();
+                            let active_col = uparams.active_col();
+                            let active_row = uparams.active_row();
 
                             match uistate.url_deconst_mut().get_param(active_row) {
                                 Some (active_qparam) => {
                                     if active_col == 0 {
-                                        let mut name_str = active_qparam.name();
+                                        let mut name_str = active_qparam.key();
                                         name_str.push(c);
 
-                                        active_qparam.set_name(name_str);
+                                        active_qparam.set_key(name_str);
                                         update_url = true;
                                     }
 
@@ -116,22 +139,18 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                 },
                 KeyCode::Backspace => {
                     match uistate.active_element() {
-                        UIElement::URL => {
-                            uistate.pop_url();
-                        },
-
                         UIElement::RequestTabsElem => {
                             let uparams = uistate.query_params_ui();
-                            let col = uparams.active_param_col();
-                            let row = uparams.active_param_row();
+                            let col = uparams.active_col();
+                            let row = uparams.active_row();
 
                             if col == 0 {
                                 match uistate.url_deconst_mut().get_param(row) {
                                     Some (qparam) => {
-                                        let mut name_str = qparam.name();
+                                        let mut name_str = qparam.key();
                                         name_str.pop();
 
-                                        qparam.set_name(name_str);
+                                        qparam.set_key(name_str);
                                         update_url = true;
                                     },
                                     None => {},
@@ -157,14 +176,6 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                 },
                 KeyCode::Enter => {
                     match uistate.active_element() {
-                        UIElement::URL => {
-                            uistate.set_app_status(AppStatus::PROCESSING);
-
-                            match call_api(uistate) {
-                                Ok(()) => {},
-                                Err(_e) => {},
-                            }
-                        },
                         UIElement::SendButton => {
                             call_api(uistate).unwrap();
                         },
@@ -173,12 +184,12 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 RequestTabs::UrlParams => {
                                     let mut p = uistate.query_params_ui();
                                     let url_obj = uistate.url_deconst_mut();
-                                    let row = p.active_param_row();
-                                    let col = p.active_param_col();
+                                    let row = p.active_row();
+                                    let col = p.active_col();
 
                                     // The "+" or add parameter button
                                     if col == 2 {
-                                        let new_qparam = QueryParam::default();
+                                        let new_qparam = KVData::default();
                                         url_obj.insert_param(row+1, new_qparam);
                                         update_url = true;
                                     }
@@ -188,14 +199,14 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         url_obj.remove_param(row);
 
                                         if row > 0 {
-                                            p.set_active_param_row(row - 1);
+                                            p.set_active_row(row - 1);
                                         }
                                         update_url = true;
 
                                         if url_obj.query_params().len() == 0 {
                                             url_obj.insert_param(
                                                 0,
-                                                QueryParam::default()
+                                                KVData::default()
                                             );
                                         }
                                     }
@@ -218,11 +229,11 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             match uistate.active_request_tab() {
                                 RequestTabs::UrlParams => {
                                     let mut apr = uistate.query_params_ui_mut()
-                                        .active_param_row();
+                                        .active_row();
 
                                     if apr != 0 {
                                         apr -= 1;
-                                        uistate.query_params_ui_mut().set_active_param_row(apr);
+                                        uistate.query_params_ui_mut().set_active_row(apr);
                                     }
                                 },
                                 _ => {},
@@ -258,10 +269,10 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 match uistate.active_request_tab() {
                                     RequestTabs::UrlParams => {
                                         let params = uistate.query_params_ui_mut();
-                                        let apr = params.active_param_col();
+                                        let apr = params.active_col();
 
                                         if apr < 3 {
-                                            params.set_active_param_col(apr + 1);
+                                            params.set_active_col(apr + 1);
                                         }
                                     },
                                     _ => {},
@@ -281,10 +292,10 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 match uistate.active_request_tab() {
                                     RequestTabs::UrlParams => {
                                         let params = uistate.query_params_ui_mut();
-                                        let apr = params.active_param_col();
+                                        let apr = params.active_col();
 
                                         if apr > 0 {
-                                            params.set_active_param_col(apr - 1);
+                                            params.set_active_col(apr - 1);
                                         }
                                     },
                                     _ => {},
@@ -304,13 +315,13 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 RequestTabs::UrlParams => {
                                     if key.modifiers == KeyModifiers::CONTROL {
                                         let mut apr = uistate.query_params_ui_mut()
-                                            .active_param_row();
+                                            .active_row();
 
                                         if apr <= 1000 {
                                             apr += 1;
 
                                             if apr < uistate.url_deconst().query_params().len() as u16 {
-                                                uistate.query_params_ui_mut().set_active_param_row(apr);
+                                                uistate.query_params_ui_mut().set_active_row(apr);
                                             }
                                         }
                                     }

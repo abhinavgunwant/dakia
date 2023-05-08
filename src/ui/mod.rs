@@ -20,7 +20,7 @@ use crate::ui::state::{
     UiState, Method, UIElement, request_tabs::RequestTabs,
 };
 
-use self::state::app_status::AppStatus;
+use self::state::{app_status::AppStatus, kv_tab_state::KVTabState};
 
 /// Main rendering function called whenever the ui has to be re-rendered.
 pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
@@ -85,8 +85,6 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
     ti_size.x = 12;
     ti_size.width -= 12;
 
-    //let url_border_style = Style::default();
-
     let url_input = TextInput::default()
         .label(String::from(" URL "))
         .borders(Borders::ALL)
@@ -94,10 +92,6 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
         .border_style(Style::default())
         .active_border_style(Style::default().fg(Color::Yellow))
         .active(uistate.active_element() == &UIElement::URL);
-
-//    if uistate.active_element() == &UIElement::URL {
-//        url_input = url_input.border_style(url_border_style.fg(Color::Yellow));
-//    }
 
     f.render_widget(url_input, top_bar_chunks[1]);
 
@@ -326,131 +320,152 @@ fn render_tab_content<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState, rect:
 
     match uistate.active_request_tab() {
         RequestTabs::UrlParams => {
-            let params = uistate.query_params_ui();
-            let content_rect = Rect::new(
-                rect_inset.x,
-                rect_inset.y,
-                rect_inset.width,
-                3,
-            );
-
-            let content_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Min(10),
-                    Constraint::Length(10),
-                ].as_ref())
-                .split(content_rect);
-
-            let param_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
-                ].as_ref())
-                .split(content_chunks[0]);
-
-            let param_actions_chunk = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
-                ].as_ref())
-                .split(content_chunks[1]);
-
-            for (i, param) in uistate.url_deconst().query_params().iter().enumerate() {
-                let mut name_rect = param_chunks[0];
-                let mut value_rect = param_chunks[1];
-                let mut add_param_chunk = param_actions_chunk[0];
-                let mut remove_param_chunk = param_actions_chunk[1];
-                let row_active: bool = params.active_param_row() == (i as u16);
-
-                if i > 0 {
-                    name_rect.y += (3 * i) as u16;
-                    value_rect.y += (3 * i) as u16;
-                    add_param_chunk.y += (3 * i) as u16;
-                    remove_param_chunk.y += (3 * i) as u16;
-                }
-
-                let mut param_name_style = Style::default().fg(Color::Gray);
-
-                if row_active && params.active_param_col() == 0 {
-                    param_name_style = param_name_style.fg(Color::Yellow);
-                }
-
-                let param_name = TextInput::default()
-                    .label(String::from(" Name "))
-                    .borders(Borders::ALL)
-                    .text(param.name())
-                    .border_style(param_name_style);
-
-                f.render_widget(param_name, name_rect);
-
-                let mut param_value_style = Style::default().fg(Color::Gray);
-
-                if row_active && params.active_param_col() == 1 {
-                    param_value_style = param_value_style.fg(Color::Yellow);
-                }
-
-                let param_value = TextInput::default()
-                    .label(String::from(" Value "))
-                    .borders(Borders::ALL)
-                    .text(param.value())
-                    .border_style(param_value_style);
-
-                f.render_widget(param_value, value_rect);
-
-                let mut param_add_style = Style::default().fg(Color::White);
-
-                if row_active && params.active_param_col() == 2 {
-                    param_add_style = param_add_style.fg(Color::Cyan);
-                }
-
-                let action_block = Block::default()
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded);
-
-                let add_param = action_block.clone().style(param_add_style);
-
-                f.render_widget(add_param, add_param_chunk);
-                add_param_chunk.x += 2;
-                add_param_chunk.width -= 2;
-                add_param_chunk.y += 1;
-                f.render_widget(
-                    Label::default().text("+").style(param_add_style),
-                    add_param_chunk
-                );
-
-                let mut param_remove_style = Style::default().fg(Color::White);
-
-                if row_active && params.active_param_col() == 3 {
-                    param_remove_style = param_remove_style.fg(Color::Cyan);
-                }
-
-                let remove_param = action_block.style(param_remove_style);
-
-                f.render_widget(remove_param, remove_param_chunk);
-                remove_param_chunk.x += 2;
-                remove_param_chunk.y += 1;
-                f.render_widget(
-                    Label::default().text("-").style(param_remove_style),
-                    remove_param_chunk,
-                );
-
-            }
+            render_kv_tab(f, uistate, RequestTabs::UrlParams, rect);
         },
         RequestTabs::Authorization => {
             let content = Paragraph::new(String::from("Authorization"));
             f.render_widget(content, rect_inset);
         },
         RequestTabs::Headers => {
-            let content = Paragraph::new(String::from("Headers"));
-            f.render_widget(content, rect_inset);
+            render_kv_tab(f, uistate, RequestTabs::Headers, rect);
         },
         RequestTabs::Body => {
             let content = Paragraph::new(String::from("Body"));
             f.render_widget(content, rect_inset);
         },
+    }
+}
+
+fn render_kv_tab<B: Backend>(
+    f: &mut Frame<B>,
+        uistate: &mut UiState,
+        render_tab: RequestTabs,
+        rect: Rect
+    ) {
+    let params: KVTabState;
+    let kv_data;
+
+    match render_tab {
+        RequestTabs::UrlParams => {
+            params = uistate.query_params_ui();
+            kv_data = uistate.url_deconst().query_params().iter().enumerate();
+        },
+        RequestTabs::Headers => {
+            params = uistate.request_headers_ui();
+            kv_data = uistate.request_headers().iter().enumerate();
+        },
+        _ => { return; }
+    }
+
+    let content_rect = Rect::new(
+        rect.x + 2,
+        rect.y + 1,
+        rect.width - 4,
+        3,
+    );
+
+    let content_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(10),
+            Constraint::Length(10),
+        ].as_ref())
+        .split(content_rect);
+
+    let param_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ].as_ref())
+        .split(content_chunks[0]);
+
+    let param_actions_chunk = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ].as_ref())
+        .split(content_chunks[1]);
+
+    for (i, param) in kv_data {
+        let mut name_rect = param_chunks[0];
+        let mut value_rect = param_chunks[1];
+        let mut add_param_chunk = param_actions_chunk[0];
+        let mut remove_param_chunk = param_actions_chunk[1];
+        let row_active: bool = params.active_row() == (i as u16);
+
+        if i > 0 {
+            name_rect.y += (3 * i) as u16;
+            value_rect.y += (3 * i) as u16;
+            add_param_chunk.y += (3 * i) as u16;
+            remove_param_chunk.y += (3 * i) as u16;
+        }
+
+        let mut param_name_style = Style::default().fg(Color::Gray);
+
+        if row_active && params.active_col() == 0 {
+            param_name_style = param_name_style.fg(Color::Yellow);
+        }
+
+        let param_name = TextInput::default()
+            .label(String::from(" Key "))
+            .borders(Borders::ALL)
+            .text(param.key())
+            .border_style(param_name_style);
+
+        f.render_widget(param_name, name_rect);
+
+        let mut param_value_style = Style::default().fg(Color::Gray);
+
+        if row_active && params.active_col() == 1 {
+            param_value_style = param_value_style.fg(Color::Yellow);
+        }
+
+        let param_value = TextInput::default()
+            .label(String::from(" Value "))
+            .borders(Borders::ALL)
+            .text(param.value())
+            .border_style(param_value_style);
+
+        f.render_widget(param_value, value_rect);
+
+        let mut param_add_style = Style::default().fg(Color::White);
+
+        if row_active && params.active_col() == 2 {
+            param_add_style = param_add_style.fg(Color::Cyan);
+        }
+
+        let action_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
+        let add_param = action_block.clone().style(param_add_style);
+
+        f.render_widget(add_param, add_param_chunk);
+        add_param_chunk.x += 2;
+        add_param_chunk.width -= 2;
+        add_param_chunk.y += 1;
+        f.render_widget(
+            Label::default().text("+").style(param_add_style),
+            add_param_chunk
+        );
+
+        let mut param_remove_style = Style::default().fg(Color::White);
+
+        if row_active && params.active_col() == 3 {
+            param_remove_style = param_remove_style.fg(Color::Cyan);
+        }
+
+        let remove_param = action_block.style(param_remove_style);
+
+        f.render_widget(remove_param, remove_param_chunk);
+        remove_param_chunk.x += 2;
+        remove_param_chunk.y += 1;
+        f.render_widget(
+            Label::default().text("-").style(param_remove_style),
+            remove_param_chunk,
+        );
     }
 }
 
