@@ -314,5 +314,12 @@ impl UiState {
     pub fn set_app_error(&mut self, error_str: String) {
         self.app_error = Some(error_str);
     }
+
+    pub fn insert_url_param(&mut self, pos: u16, param: KVData) {
+        self.url_deconst.insert_param(pos, param);
+    }
+    pub fn remove_url_param(&mut self, pos: u16) {
+        self.url_deconst.remove_param(pos);
+    }
 }
 
