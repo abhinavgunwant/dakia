@@ -2,17 +2,15 @@ pub mod kv_tab;
 
 use std::io::Error;
 
-use crossterm::event::{ self, Event, KeyCode, KeyModifiers, KeyEvent };
+use crossterm::event::{ self, Event, KeyCode, KeyModifiers };
 use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement, Method,
         request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
-        kv_tab_state::KVTabState,
     },
     api::call_api,
     user_input::kv_tab::{ KVTabOperation, process_kv_tab_input },
 };
-
 
 /// User interaction related code...
 /// Returning `Ok(true)` shall exit the program.
@@ -62,83 +60,157 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     match uistate.active_request_tab() {
                         RequestTabs::UrlParams => {
                             process_kv_tab_input(key, row, col, |op| {
-                                    match op {
-                                        KVTabOperation::Insert(pos) => {
+                                match op {
+                                    KVTabOperation::Insert(pos) => {
+                                        uistate.insert_url_param(
+                                            pos,
+                                            KVData::default()
+                                        );
+                                    }
+
+                                    KVTabOperation::Remove(pos) => {
+                                        uistate.remove_url_param(pos);
+
+                                        if uistate.url_deconst()
+                                            .query_params().len() == 0
+                                        {
                                             uistate.insert_url_param(
-                                                pos,
+                                                0,
                                                 KVData::default()
                                             );
                                         }
+                                    }
 
-                                        KVTabOperation::Remove(pos) => {
-                                            uistate.remove_url_param(pos);
+                                    KVTabOperation::MoveColumn(col) => {
+                                        uistate.query_params_ui_mut()
+                                            .set_active_col(col);
+                                    }
 
-                                            if uistate.url_deconst()
-                                                .query_params().len() == 0
-                                            {
-                                                uistate.insert_url_param(
-                                                    0,
-                                                    KVData::default()
-                                                );
-                                            }
-                                        }
+                                    KVTabOperation::MoveRow(row) => {
+                                        uistate.query_params_ui_mut()
+                                            .set_active_row(row);
+                                    }
 
-                                        KVTabOperation::MoveColumn(col) => {
-                                            uistate.query_params_ui_mut()
-                                                .set_active_col(col);
-                                        }
+                                    KVTabOperation::AppendText(c) => {
+                                        match uistate.url_deconst_mut().get_param(row) {
+                                            Some (active_qparam) => {
+                                                if col == 0 {
+                                                    let mut key = active_qparam.key();
+                                                    key.push(c);
 
-                                        KVTabOperation::MoveRow(row) => {
-                                            uistate.query_params_ui_mut()
-                                                .set_active_row(row);
-                                        }
-
-                                        KVTabOperation::AppendText(c) => {
-                                            match uistate.url_deconst_mut().get_param(row) {
-                                                Some (active_qparam) => {
-                                                    if col == 0 {
-                                                        let mut key = active_qparam.key();
-                                                        key.push(c);
-
-                                                        active_qparam.set_key(key);
-                                                    }
-
-                                                    if col == 1 {
-                                                        let mut val = active_qparam.value();
-                                                        val.push(c);
-
-                                                        active_qparam.set_value(val);
-                                                    }
+                                                    active_qparam.set_key(key);
                                                 }
 
-                                                None => {}
-                                            }
-                                        }
+                                                if col == 1 {
+                                                    let mut val = active_qparam.value();
+                                                    val.push(c);
 
-                                        KVTabOperation::PopText() => {
-                                            match uistate.url_deconst_mut().get_param(row) {
-                                                Some (qparam) => {
-                                                    if col == 0 {
-                                                        let mut key = qparam.key();
-                                                        key.pop();
-
-                                                        qparam.set_key(key);
-                                                    }
-
-                                                    if col == 1 {
-                                                        let mut val = qparam.value();
-                                                        val.pop();
-
-                                                        qparam.set_value(val);
-                                                    }
+                                                    active_qparam.set_value(val);
                                                 }
-
-                                                None => {}
                                             }
+
+                                            None => {}
                                         }
                                     }
-                                },
+
+                                    KVTabOperation::PopText() => {
+                                        match uistate.url_deconst_mut().get_param(row) {
+                                            Some (qparam) => {
+                                                if col == 0 {
+                                                    let mut key = qparam.key();
+                                                    key.pop();
+
+                                                    qparam.set_key(key);
+                                                }
+
+                                                if col == 1 {
+                                                    let mut val = qparam.value();
+                                                    val.pop();
+
+                                                    qparam.set_value(val);
+                                                }
+                                            }
+
+                                            None => {}
+                                        }
+                                    }
+                                }},
                                 | update | { update_url = update; },
+                            );
+                        }
+
+                        RequestTabs::Headers => {
+                            let row = uistate.request_headers_ui().active_row();
+                            let col = uistate.request_headers_ui().active_col();
+
+                            process_kv_tab_input(key, row, col, |op| {
+                                match op {
+                                    KVTabOperation::Insert(pos) => {
+                                        uistate.insert_header(
+                                            pos,
+                                            KVData::default()
+                                        );
+                                    }
+
+                                    KVTabOperation::Remove(pos) => {
+                                        uistate.remove_header(pos);
+                                    }
+
+                                    KVTabOperation::MoveColumn(col) => {
+                                        uistate.request_headers_ui_mut()
+                                            .set_active_col(col);
+                                    }
+
+                                    KVTabOperation::MoveRow(row) => {
+                                        uistate.request_headers_ui_mut()
+                                            .set_active_row(row);
+                                    }
+
+                                    KVTabOperation::AppendText(c) => {
+                                        match uistate.request_headers_mut().get_mut(row as usize) {
+                                            Some (active_header) => {
+                                                if col == 0 {
+                                                    let mut key = active_header.key();
+                                                    key.push(c);
+
+                                                    active_header.set_key(key);
+                                                }
+
+                                                if col == 1 {
+                                                    let mut val = active_header.value();
+                                                    val.push(c);
+
+                                                    active_header.set_value(val);
+                                                }
+                                            }
+
+                                            None => {}
+                                        }
+                                    }
+
+                                    KVTabOperation::PopText() => {
+                                        match uistate.request_headers_mut().get_mut(row as usize) {
+                                            Some (active_header) => {
+                                                if col == 0 {
+                                                    let mut key = active_header.key();
+                                                    key.pop();
+
+                                                    active_header.set_key(key);
+                                                }
+
+                                                if col == 1 {
+                                                    let mut val = active_header.value();
+                                                    val.pop();
+
+                                                    active_header.set_value(val);
+                                                }
+                                            }
+
+                                            None => {}
+                                        }
+                                    }
+                                }},
+                                |_update| {}
                             );
                         }
 
@@ -215,7 +287,7 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                             Method::from_val(num as u8)
                                         );
                                     }
-                                },
+                                }
 
                                 None => {
                                     let c_ = c.to_ascii_uppercase();
