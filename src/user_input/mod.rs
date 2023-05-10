@@ -3,9 +3,10 @@ pub mod kv_tab;
 use std::io::Error;
 
 use crossterm::event::{ self, Event, KeyCode, KeyModifiers };
+use reqwest::Method;
 use crate::{
     ui::state::{
-        UiState, InputMode, EditorMode, UIElement, Method,
+        UiState, InputMode, EditorMode, UIElement,
         request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
     },
     api::call_api,
@@ -280,53 +281,15 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                     match key.code {
                         KeyCode::Char(c) => {
                             match c.to_digit(10) {
-                                Some(mut num) => {
+                                Some(num) => {
                                     if num > 0 {
-                                        num -= 1;
-                                        uistate.set_method(
-                                            Method::from_val(num as u8)
+                                        uistate.set_method_from_val(
+                                            (num-1) as u8
                                         );
                                     }
                                 }
 
-                                None => {
-                                    let c_ = c.to_ascii_uppercase();
-                                    let allowed_chars = "GPUDH";
-
-                                    if allowed_chars.contains(
-                                            c_.to_string().as_str()
-                                        )
-                                    {
-                                        match c_ {
-                                            'G' => {
-                                                uistate.set_method(
-                                                    Method::GET
-                                                );
-                                            },
-                                            'P' => {
-                                                uistate.set_method(
-                                                    Method::POST
-                                                );
-                                            },
-                                            'U' => {
-                                                uistate.set_method(
-                                                    Method::PUT
-                                                );
-                                            },
-                                            'D' => {
-                                                uistate.set_method(
-                                                    Method::DELETE
-                                                );
-                                            },
-                                            'H' => {
-                                                uistate.set_method(
-                                                    Method::HEADER
-                                                );
-                                            },
-                                            _ => {},
-                                        }
-                                    }
-                                }
+                                None => { uistate.set_method_from_char(c); }
                             }
                         }
 

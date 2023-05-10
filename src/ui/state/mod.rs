@@ -7,13 +7,16 @@ pub mod url;
 pub mod response;
 pub mod app_status;
 
-use std::fmt::{ Display, Formatter, Result as FResult };
+//use std::fmt::{ Display, Formatter, Result as FResult };
+use reqwest::Method;
 use request_tabs::RequestTabs;
 use kv_tab_state::KVTabState;
 use kv_data::KVData;
 use url::Url;
 
 use self::{response::Response, app_status::AppStatus};
+
+const METHOD_ALLOWED_CHARS: &str = "GPUDHOCAT";
 
 /// Represents app state.
 #[derive(Clone)]
@@ -90,52 +93,6 @@ impl UIElement {
     }
 }
 
-/// List of HTTP methods
-#[derive(Clone, PartialEq)]
-pub enum Method {
-    GET = 0,
-    POST = 1,
-    PUT = 2,
-    DELETE = 3,
-    HEADER = 4,
-}
-
-impl Default for Method {
-    fn default() -> Self { Method::GET }
-}
-
-impl Display for Method {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FResult {
-        write!(f, "Method::{}", self.clone().get_str_label())
-    }
-}
-
-impl Method {
-    /// Returns the string label for the method variants. Used to render the
-    /// different methods in the ui.
-    pub fn get_str_label(self) -> String {
-        match self {
-            Method::GET => String::from("GET"),
-            Method::POST => String::from("POST"),
-            Method::PUT => String::from("PUT"),
-            Method::DELETE => String::from("DELETE"),
-            Method::HEADER => String::from("HEADER"),
-        }
-    }
-
-    /// Returns `Method` variant against the value supplied.
-    pub fn from_val(val: u8) -> Self {
-        match val {
-            x if x <= Method::GET as u8  => Method::GET,
-            x if x == Method::POST as u8  => Method::POST,
-            x if x == Method::PUT as u8  => Method::PUT,
-            x if x == Method::DELETE as u8  => Method::DELETE,
-            x if x >= Method::HEADER as u8 => Method::HEADER,
-            _ => Method::GET,
-        }
-    }
-}
-
 /// Represents the editor mode.
 /// There can be 2 editor modes:
 /// * **Normal** - This is the default editor mode. The user uses the tab and
@@ -208,9 +165,44 @@ impl UiState {
     pub fn url_deconst_mut(&mut self) -> &mut Url { &mut self.url_deconst }
 
     /// Gets the current [Method].
-    pub fn method(&mut self) -> Method { self.method.clone() }
+    pub fn method(&self) -> Method { self.method.clone() }
     /// Sets the current [Method].
     pub fn set_method(&mut self, method: Method) { self.method = method; }
+    pub fn set_method_from_val(&mut self, val: u8) {
+        match val {
+            0 => self.set_method(Method::GET),
+            1 => self.set_method(Method::POST),
+            2 => self.set_method(Method::PUT),
+            3 => self.set_method(Method::DELETE),
+            4 => self.set_method(Method::HEAD),
+            5 => self.set_method(Method::OPTIONS),
+            6 => self.set_method(Method::CONNECT),
+            7 => self.set_method(Method::PATCH),
+            8 => self.set_method(Method::TRACE),
+            _ => self.set_method(Method::GET),
+        }
+    }
+    pub fn set_method_from_char(&mut self, c: char) {
+        let c_ = c.to_ascii_uppercase();
+        if METHOD_ALLOWED_CHARS.contains(c_.to_string().as_str()) {
+            match c_ {
+                'G' => { self.set_method(Method::GET); },
+                'P' => { self.set_method(Method::POST); },
+                'U' => { self.set_method(Method::PUT); },
+                'D' => { self.set_method(Method::DELETE); },
+                'H' => { self.set_method(Method::HEAD); },
+                'O' => { self.set_method(Method::OPTIONS); },
+                'C' => { self.set_method(Method::CONNECT); },
+                'A' => { self.set_method(Method::PATCH); },
+                'T' => { self.set_method(Method::TRACE); },
+                _ => { self.set_method(Method::GET); },
+            }
+
+            return;
+        }
+
+        self.set_method(Method::GET);
+    }
 
     /// Gets the current [EditorMode].
     pub fn editor_mode(self) -> EditorMode { self.editor_mode }
@@ -287,7 +279,7 @@ impl UiState {
     }
 
     pub fn request_headers(&self) -> &Vec<KVData> { &self.request_headers }
-    pub fn request_header_mut(&mut self) -> &mut Vec<KVData> {
+    pub fn request_headers_mut(&mut self) -> &mut Vec<KVData> {
         &mut self.request_headers
     }
     
@@ -320,6 +312,17 @@ impl UiState {
     }
     pub fn remove_url_param(&mut self, pos: u16) {
         self.url_deconst.remove_param(pos);
+    }
+
+    pub fn insert_header(&mut self, pos: u16, param: KVData) {
+        self.request_headers.insert(pos as usize, param);
+    }
+    pub fn remove_header(&mut self, pos: u16) {
+        self.request_headers.remove(pos as usize);
+
+        if self.request_headers.len() == 0 {
+            self.request_headers.push(KVData::default());
+        }
     }
 }
 

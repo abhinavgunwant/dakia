@@ -17,7 +17,7 @@ use widgets::{
     label::Label,
 };
 use crate::ui::state::{
-    UiState, Method, UIElement, request_tabs::RequestTabs,
+    UiState, UIElement, request_tabs::RequestTabs,
 };
 
 use self::state::{app_status::AppStatus, kv_tab_state::KVTabState};
@@ -78,7 +78,7 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
         .label(String::from(" Method "))
         .borders(Borders::ALL)
         .border_style(method_border_style)
-        .text(Method::get_str_label(uistate.method()));
+        .text(String::from(uistate.method().as_str()));
 
     f.render_widget(method_input, top_bar_chunks[0]);
 

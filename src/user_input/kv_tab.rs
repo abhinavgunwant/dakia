@@ -71,7 +71,6 @@ pub fn process_kv_tab_input(
             }
         }
 
-
         KeyCode::Char(c) => {
             update_func(KVTabOperation::AppendText(c));
             change_func(true);
