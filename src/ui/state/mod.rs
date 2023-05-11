@@ -6,6 +6,7 @@ pub mod kv_tab_state;
 pub mod url;
 pub mod response;
 pub mod app_status;
+pub mod body;
 
 //use std::fmt::{ Display, Formatter, Result as FResult };
 use reqwest::Method;
@@ -13,6 +14,7 @@ use request_tabs::RequestTabs;
 use kv_tab_state::KVTabState;
 use kv_data::KVData;
 use url::Url;
+use body::Body;
 
 use self::{response::Response, app_status::AppStatus};
 
@@ -26,6 +28,9 @@ pub struct UiState {
     
     /// The deconstructed URL
     url_deconst: Url,
+
+    /// The state of the "Body" tab in request section.
+    body: Body,
 
     /// The current [EditorMode].
     editor_mode: EditorMode,
