@@ -53,7 +53,6 @@ impl Url {
     /// **TODO** Modify to show url errors.
     pub fn update(&mut self, url: String) {
         let mut url_contains_protocol = true;
-        let mut url_contains_port = true;
 
         let url_temp = url.replace("://", ":");
 

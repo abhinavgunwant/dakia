@@ -136,6 +136,7 @@ impl Default for UiState {
         Self {
             url: String::default(),
             url_deconst: Url::default(),
+            body: Body::default(),
             editor_mode: EditorMode::default(),
             method: Method::default(),
             active_request_tab: RequestTabs::default(),
