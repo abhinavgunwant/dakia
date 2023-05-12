@@ -1,3 +1,5 @@
+const EMPTY_STRING: String = String::new();
+
 #[derive(Clone, Default)]
 pub struct KVData {
     key: String,
@@ -5,6 +7,8 @@ pub struct KVData {
 }
 
 impl KVData {
+    pub const fn default_const() -> Self { Self { key: EMPTY_STRING, value: EMPTY_STRING } }
+
     pub fn new(key: String, value: String) -> Self { KVData { key, value } }
 
     pub fn from_string(input: String) -> Self { Self::from_str(&input) }

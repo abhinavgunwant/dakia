@@ -3,6 +3,7 @@
 pub mod widgets;
 pub mod state;
 pub mod render;
+pub mod calc;
 
 use tui::{
     backend::Backend, style::{ Color, Style }, text::{ Span, Spans }, Frame,
@@ -15,6 +16,7 @@ use crate::ui::{
         UiState, UIElement, request_tabs::RequestTabs, app_status::AppStatus,
     },
     widgets::text_input::TextInput, render::render_tab_content,
+    calc::scrollbar_pos,
 };
 
 /// Main rendering function called whenever the ui has to be re-rendered.
@@ -184,8 +186,6 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
 
             uistate.response_mut().set_response(r_lines);
             uistate.response_mut().set_cache_req_counter(req_counter);
-        } else {
-            println!("hit");
         }
 
         let response_text = uistate.response().response();
@@ -209,30 +209,23 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
 
             f.render_widget(scrollbar, scrollbar_rect);
 
-            let total_len = response_text.len() as f32;
-            let disp_cntnt_len = content_height as f32;
-
-            // calculate scrolbar thumb size
-            let scrollbar_thumb_height: f32 = (disp_cntnt_len / total_len) * disp_cntnt_len;
-
-            // calculate scrollbar thumb pos from top of scrollbar
-            let scrollbar_thumb_pos: f32 =
-                (
-                    (response_text_end as f32 / total_len)
-                    * disp_cntnt_len
-                ) - scrollbar_thumb_height;
-
             let scrollbar_thumb = Block::default()
                 .borders(Borders::NONE)
                 .style(Style::default().bg(Color::White));
+
+            let (thumb_height, thumb_pos) = scrollbar_pos(
+                content_height as u16,
+                response_text_end as u16,
+                response_text.len() as u16,
+            );
 
             f.render_widget(
                 scrollbar_thumb,
                 Rect::new(
                     scrollbar_rect.x,
-                    scrollbar_rect.y + scrollbar_thumb_pos.floor() as u16,
+                    scrollbar_rect.y + thumb_pos,
                     1,
-                    scrollbar_thumb_height.ceil() as u16
+                    thumb_height,
             ));
         }
 
