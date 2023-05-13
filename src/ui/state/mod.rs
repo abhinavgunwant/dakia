@@ -170,6 +170,9 @@ impl UiState {
     pub fn url_deconst(&self) -> &Url { &self.url_deconst }
     pub fn url_deconst_mut(&mut self) -> &mut Url { &mut self.url_deconst }
 
+    pub fn body(&self) -> &Body { &self.body }
+    pub fn body_mut(&mut self) -> &mut Body { &mut self.body }
+
     /// Gets the current [Method].
     pub fn method(&self) -> Method { self.method.clone() }
     /// Sets the current [Method].

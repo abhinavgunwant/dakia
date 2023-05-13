@@ -7,7 +7,7 @@ use reqwest::Method;
 use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement,
-        request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
+        request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus, body::BodyUIElement,
     },
     api::call_api,
     user_input::kv_tab::{ KVTabOperation, process_kv_tab_input },
@@ -213,6 +213,109 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                 }},
                                 |_update| {}
                             );
+                        }
+
+                        RequestTabs::Body => {
+                            match uistate.body().active_body_element() {
+                                BodyUIElement::TextArea => {
+                                    match key.code {
+                                        KeyCode::Up => {
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement::ContentType(false)
+                                                    );
+                                            }
+                                        }
+
+                                        _ => {}
+                                    }
+                                }
+
+                                BodyUIElement::ContentType(opened) => {
+                                    match key.code {
+                                        KeyCode::Right => {
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement::RawContentType(false)
+                                                    );
+                                            }
+                                        }
+
+                                        KeyCode::Left => {
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement::TextArea
+                                                    );
+                                            }
+                                        }
+
+                                        KeyCode::Enter => {
+                                            if *opened {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement
+                                                            ::ContentType(false)
+                                                    );
+                                            } else {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement
+                                                            ::ContentType(true)
+                                                    );
+                                            }
+                                        }
+
+                                        KeyCode::Up => {
+                                            if *opened {
+                                                let s = *uistate.body().body_content_sel_index();
+
+                                                if s > 0 {
+                                                    uistate.body_mut().set_body_content_sel_index(s - 1);
+                                                }
+                                            }
+                                        }
+
+                                        KeyCode::Down => {
+                                            if *opened {
+                                                let s = *uistate.body().body_content_sel_index() + 1;
+
+                                                if s < uistate.body().body_content_options().len() as u8 {
+                                                    uistate.body_mut().set_body_content_sel_index(s);
+                                                }
+                                            }
+                                        }
+
+                                        _ => {}
+                                    }
+                                }
+
+                                BodyUIElement::RawContentType(active) => {
+                                    match key.code {
+                                        KeyCode::Right => {
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement::TextArea
+                                                    );
+                                            }
+                                        }
+
+                                        KeyCode::Left => {
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement::ContentType(false)
+                                                    );
+                                            }
+                                        }
+
+                                        _ => {}
+                                    }
+                                }
+                            }
                         }
 
                         _ => {}

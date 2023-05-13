@@ -32,7 +32,7 @@ pub struct Select {
 
     /// Represented the element that is being highlighted when the this widget
     /// is in the `opened` state.
-    highlight_index: u8,
+    sel_index: u8,
 
     scroll_offset: u8,
 
@@ -78,33 +78,31 @@ impl Widget for Select {
                 block.render(area, buf);
 
                 // render selected text
-                match self.get_default_index() {
-                    Some(indx) => {
-                        if self.get_options().len() > *indx as usize {
-                            let mut text_rect = Rect::new(
-                                area.x + 2,
-                                area.y + 1,
-                                area.width,
-                                1,
-                            );
-                            let text = self.get_options()[*indx as usize].clone();
+                if self.get_options().len() > *self.get_sel_index() as usize {
+                    let mut text_rect = Rect::new(
+                        area.x + 2,
+                        area.y + 1,
+                        area.width,
+                        1,
+                    );
 
-                            let selected_text = Paragraph::new(
-                                Span::styled(text, style)
-                            );
+                    let text = self.get_options()[
+                        *self.get_sel_index() as usize
+                    ].clone();
 
-                            selected_text.render(text_rect, buf);
+                    let selected_text = Paragraph::new(
+                        Span::styled(text, style)
+                    );
 
-                            let triangle_down = Paragraph::new(
-                                Span::styled(String::from("\u{eb6e}"), style)
-                            );
+                    selected_text.render(text_rect, buf);
 
-                            text_rect.x = text_rect.width - 1;
-                            text_rect.width = 1;
-                            triangle_down.render(text_rect, buf);
-                        }
-                    }
-                    None => {}
+                    let triangle_down = Paragraph::new(
+                        Span::styled(String::from("\u{eb6e}"), style)
+                    );
+
+                    text_rect.x = text_rect.width - 1;
+                    text_rect.width = 1;
+                    triangle_down.render(text_rect, buf);
                 }
 
                 // render popup if active and opened
@@ -112,7 +110,7 @@ impl Widget for Select {
                     // Clear the area under the popup
                     let popup_rect = Rect::new(
                         area.x,
-                        area.y+3,
+                        area.y + 2,
                         area.width,
                         5
                     );
@@ -122,14 +120,19 @@ impl Widget for Select {
 
                     // render the popup items
                     let mut popup_element_rect = Rect::new(
-                        popup_rect.x,
-                        popup_rect.y,
-                        popup_rect.width - 1,
+                        popup_rect.x + 1,
+                        popup_rect.y - 1,
+                        popup_rect.width - 2,
                         1,
                     );
 
                     let so = *self.get_scroll_offset() as usize;
-                    let d =  *self.get_disp_content_length() as usize;
+                    let mut d =  *self.get_disp_content_length() as usize;
+
+                    if self.get_options().len() < d {
+                        d = self.get_options().len();
+                    }
+
                     let items_to_display = &self.get_options()[so..d];
                     let highlight_item_style = Style::default()
                         .bg(Color::Yellow).fg(Color::Black);
@@ -139,7 +142,14 @@ impl Widget for Select {
                     for (i, opt) in items_to_display.iter().enumerate() {
                         let paragraph: Paragraph;
 
-                        if i as u8 == *self.get_highlight_index() {
+                        popup_element_rect.y += 1 as u16;
+
+                        if i as u8 == *self.get_sel_index() {
+                            let highlight_block = Block::default()
+                                .style(highlight_item_style);
+
+                            highlight_block.render(popup_element_rect, buf);
+
                             paragraph = Paragraph::new(
                                 Span::styled(opt, highlight_item_style)
                             );
@@ -149,9 +159,14 @@ impl Widget for Select {
                             );
                         }
 
-                        popup_element_rect.y += i as u16;
+                        let popup_element_par_rect = Rect::new(
+                            popup_element_rect.x + 1,
+                            popup_element_rect.y,
+                            popup_element_rect.width,
+                            popup_element_rect.height,
+                        );
 
-                        paragraph.render(popup_element_rect, buf);
+                        paragraph.render(popup_element_par_rect, buf);
                     }
 
                     if self.get_options().len() as u16 > *self.get_disp_content_length() as u16 {
@@ -176,7 +191,7 @@ impl Widget for Select {
                         );
 
                         let scrollbar_track = Block::default()
-                            .style(Style::default().bg(Color::Gray))
+                            .style(Style::default().bg(Color::DarkGray))
                             .borders(Borders::NONE);
 
                         scrollbar_track.render(scrollbar_rect, buf);
@@ -187,6 +202,13 @@ impl Widget for Select {
 
                         scrollbar_thumb.render(scrollbar_thumb_rect, buf);
                     }
+
+                    let popup_block = Block::default()
+                        .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(Color::Yellow));
+
+                    popup_block.render(popup_rect, buf);
                 }
             }
 
@@ -220,9 +242,9 @@ impl Select {
         self
     }
 
-    pub fn get_highlight_index(&self) -> &u8 { &self.highlight_index }
-    pub fn highlight_index(mut self, indx: u8) -> Self {
-        self.highlight_index = indx;
+    pub fn get_sel_index(&self) -> &u8 { &self.sel_index }
+    pub fn sel_index(mut self, indx: u8) -> Self {
+        self.sel_index = indx;
         self
     }
 
