@@ -8,8 +8,6 @@ use tui::{
 
 use crate::ui::calc::scrollbar_pos;
 
-use reqwest::Method;
-
 #[derive(Clone, PartialEq, Eq)]
 pub enum SelectVariant {
     Outline, Compact,
@@ -21,7 +19,11 @@ pub struct SelectOptions<T> {
     value: T,
 }
 
-#[derive(Clone, Default, PartialEq, Eq)]
+impl Default for SelectVariant {
+    fn default() -> Self { Self::Outline }
+}
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct Select {
     label: String,
     options: Vec<String>,
@@ -45,8 +47,31 @@ pub struct Select {
     active_style: Style,
 }
 
-impl Default for SelectVariant {
-    fn default() -> Self { Self::Outline }
+impl Default for Select {
+    fn default() -> Self {
+        Self {
+            label: String::default(),
+            options: vec![],
+            variant: SelectVariant::default(),
+
+            /// Index of the `options` vector that is selected by default
+            default_index: None,
+
+            /// Represented the element that is being highlighted when the this widget
+            /// is in the `opened` state.
+            sel_index: 0,
+
+            scroll_offset: 0,
+
+            /// The length of content displayed at once
+            disp_content_length: 0,
+
+            opened: false,
+            active: false,
+            style: Style::default().fg(Color::White),
+            active_style: Style::default().fg(Color::Yellow),
+        }
+    }
 }
 
 impl Widget for Select {
@@ -77,15 +102,15 @@ impl Widget for Select {
 
                 block.render(area, buf);
 
+                let mut text_rect = Rect::new(
+                    area.x + 2,
+                    area.y + 1,
+                    area.width,
+                    1,
+                );
+
                 // render selected text
                 if self.get_options().len() > *self.get_sel_index() as usize {
-                    let mut text_rect = Rect::new(
-                        area.x + 2,
-                        area.y + 1,
-                        area.width,
-                        1,
-                    );
-
                     let text = self.get_options()[
                         *self.get_sel_index() as usize
                     ].clone();
@@ -95,14 +120,6 @@ impl Widget for Select {
                     );
 
                     selected_text.render(text_rect, buf);
-
-                    let triangle_down = Paragraph::new(
-                        Span::styled(String::from("\u{eb6e}"), style)
-                    );
-
-                    text_rect.x = text_rect.width - 1;
-                    text_rect.width = 1;
-                    triangle_down.render(text_rect, buf);
                 }
 
                 // render popup if active and opened
@@ -209,6 +226,22 @@ impl Widget for Select {
                         .border_style(Style::default().fg(Color::Yellow));
 
                     popup_block.render(popup_rect, buf);
+
+                    let triangle_up = Paragraph::new(
+                        Span::styled(String::from("\u{eb71}"), style)
+                    );
+
+                    text_rect.x += text_rect.width - 5;
+                    text_rect.width = 1;
+                    triangle_up.render(text_rect, buf);
+                } else {
+                    let triangle_down = Paragraph::new(
+                        Span::styled(String::from("\u{eb6e}"), style)
+                    );
+
+                    text_rect.x += text_rect.width - 5;
+                    text_rect.width = 1;
+                    triangle_down.render(text_rect, buf);
                 }
             }
 

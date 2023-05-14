@@ -7,7 +7,8 @@ use reqwest::Method;
 use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement,
-        request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus, body::BodyUIElement,
+        request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
+        body::{ BodyUIElement, BodyContent, RawBodyContentType },
     },
     api::call_api,
     user_input::kv_tab::{ KVTabOperation, process_kv_tab_input },
@@ -236,35 +237,58 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                     match key.code {
                                         KeyCode::Right => {
                                             if key.modifiers == KeyModifiers::CONTROL {
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement::RawContentType(false)
-                                                    );
+                                                match uistate.body().body_content() {
+                                                    BodyContent::Raw(_) => {
+                                                        uistate.body_mut()
+                                                            .set_active_body_element(
+                                                                BodyUIElement::RawContentType(false)
+                                                            );
+                                                    }
+
+                                                    BodyContent::FormData(_)
+                                                        | BodyContent::FormURLEncoded(_) => {
+                                                        uistate.body_mut()
+                                                            .set_active_body_element(
+                                                                BodyUIElement::TextArea
+                                                            );
+                                                    }
+
+                                                    _ => {}
+                                                }
                                             }
                                         }
 
                                         KeyCode::Left => {
                                             if key.modifiers == KeyModifiers::CONTROL {
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement::TextArea
-                                                    );
+                                                if *uistate.body().body_content() != BodyContent::NONE {
+                                                    uistate.body_mut()
+                                                        .set_active_body_element(
+                                                            BodyUIElement::TextArea
+                                                        );
+                                                }
                                             }
                                         }
 
                                         KeyCode::Enter => {
                                             if *opened {
+                                                let body = uistate.body_mut();
+                                                let index = *body.body_content_sel_index() as usize;
+                                                let selected_option: String = body.body_content_options()[index].clone();
+
+                                                body.set_body_content(
+                                                    BodyContent::from_string(selected_option)
+                                                );
+
                                                 uistate.body_mut()
                                                     .set_active_body_element(
                                                         BodyUIElement
                                                             ::ContentType(false)
                                                     );
                                             } else {
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement
-                                                            ::ContentType(true)
-                                                    );
+                                                uistate.body_mut().set_active_body_element(
+                                                    BodyUIElement
+                                                        ::ContentType(true)
+                                                );
                                             }
                                         }
 
@@ -285,6 +309,13 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                 if s < uistate.body().body_content_options().len() as u8 {
                                                     uistate.body_mut().set_body_content_sel_index(s);
                                                 }
+                                            } else if key.modifiers == KeyModifiers::CONTROL {
+                                                if *uistate.body().body_content() != BodyContent::NONE {
+                                                    uistate.body_mut()
+                                                        .set_active_body_element(
+                                                            BodyUIElement::TextArea
+                                                        );
+                                                }
                                             }
                                         }
 
@@ -292,7 +323,7 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                     }
                                 }
 
-                                BodyUIElement::RawContentType(active) => {
+                                BodyUIElement::RawContentType(opened) => {
                                     match key.code {
                                         KeyCode::Right => {
                                             if key.modifiers == KeyModifiers::CONTROL {
@@ -309,6 +340,56 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                     .set_active_body_element(
                                                         BodyUIElement::ContentType(false)
                                                     );
+                                            }
+                                        }
+
+                                        KeyCode::Up => {
+                                            if *opened {
+                                                let s = *uistate.body().raw_body_content_sel_index();
+
+                                                if s > 0 {
+                                                    uistate.body_mut().set_raw_body_content_sel_index(s - 1);
+                                                }
+                                            }
+                                        }
+
+                                        KeyCode::Down => {
+                                            if *opened {
+                                                let s = *uistate.body().raw_body_content_sel_index() + 1;
+
+                                                if s < uistate.body().raw_body_content_options().len() as u8 {
+                                                    uistate.body_mut().set_raw_body_content_sel_index(s);
+                                                }
+                                            } else if key.modifiers == KeyModifiers::CONTROL {
+                                                if *uistate.body().body_content() != BodyContent::NONE {
+                                                    uistate.body_mut()
+                                                        .set_active_body_element(
+                                                            BodyUIElement::TextArea
+                                                        );
+                                                }
+                                            }
+                                        }
+
+                                        KeyCode::Enter => {
+                                            if *opened {
+                                                let body = uistate.body_mut();
+                                                let index = *body.raw_body_content_sel_index() as usize;
+                                                let selected_option: String = body.raw_body_content_options()[index].clone();
+
+                                                body.set_raw_body_content(
+                                                    RawBodyContentType::from_string(selected_option)
+                                                );
+
+                                                uistate.body_mut()
+                                                    .set_active_body_element(
+                                                        BodyUIElement
+                                                            ::RawContentType(false)
+                                                    );
+                                            } else {
+                                                uistate.body_mut().set_active_body_element(
+                                                    BodyUIElement
+                                                        ::RawContentType(true)
+                                                );
                                             }
                                         }
 

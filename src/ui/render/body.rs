@@ -25,21 +25,47 @@ pub fn render_body<B: Backend>(
         .direction(Direction::Horizontal)
         .split(body_content_rect[0]);
 
-    let mut select = Select::default()
-        .label(String::from(" Content type "))
+    let mut body_content_select = Select::default()
+        .label(String::from(" Content Type "))
         .default_index(0)
         .disp_content_length(5)
+        .style(Style::default().fg(Color::White))
+        .active_style(Style::default().fg(Color::Yellow))
         .sel_index(*uistate.body().body_content_sel_index())
         .options(uistate.body().body_content_options());
 
+
     match uistate.body().active_body_element() {
         BodyUIElement::ContentType(opened) => {
-            select = select.active(true).opened(*opened);
+            body_content_select = body_content_select.active(true).opened(*opened);
         }
 
         _ => {}
     }
 
-    f.render_widget(select, body_top_rect[0]);
+    f.render_widget(body_content_select, body_top_rect[0]);
+
+    match uistate.body().body_content() {
+        BodyContent::Raw(_) => {
+            let mut raw_body_content_select = Select::default()
+                .label(String::from(" Raw Content Type "))
+                .default_index(0)
+                .disp_content_length(5)
+                .sel_index(*uistate.body().raw_body_content_sel_index())
+                .options(uistate.body().raw_body_content_options());
+
+            match uistate.body().active_body_element() {
+                BodyUIElement::RawContentType(opened) => {
+                    raw_body_content_select = raw_body_content_select.active(true).opened(*opened);
+                }
+
+                _ => {}
+            }
+
+            f.render_widget(raw_body_content_select, body_top_rect[1]);
+        }
+
+        _ => {}
+    }
 }
 

@@ -23,7 +23,7 @@ pub enum BodyUIElement {
     TextArea,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum BodyContent {
     NONE,
     FormData(KVData),
@@ -32,7 +32,7 @@ pub enum BodyContent {
 }
 
 /// To help with syntax highlighting later-on!
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum RawBodyContentType {
     Text(String),
     Json(String),
@@ -50,12 +50,15 @@ pub enum BodyCursorPosition {
 #[derive(Clone)]
 pub struct Body {
     active_body_element: BodyUIElement,
+
+    /// The body "Content Type"
     body_content: BodyContent,
 
     /// The index of the element selected in the Body Content select.
     body_content_sel_index: u8,
     body_content_options: Vec<String>,
     raw_body_content: RawBodyContentType,
+    raw_body_content_options: Vec<String>,
 
     /// The index of the element selected in the Raw Body Content select.
     raw_body_content_sel_index: u8,
@@ -70,6 +73,7 @@ impl Default for Body {
             body_content_sel_index: 0,
             body_content_options: BodyContent::as_string_vec(),
             raw_body_content: RawBodyContentType::default(),
+            raw_body_content_options: RawBodyContentType::as_string_vec(),
             raw_body_content_sel_index: 0,
             cursor_position: BodyCursorPosition::default(),
         }
@@ -115,10 +119,20 @@ impl Body {
         self.body_content_options = body_content_options;
     }
 
-//    pub fn body_content_ui_state(&self) -> &SelectData { &self.body_content_ui_state }
-//    pub fn set_body_content_ui_state(&mut self, body_content_ui_state: SelectData) {
-//        self.body_content_ui_state = body_content_ui_state;
-//    }
+    pub fn raw_body_content(&self) -> &RawBodyContentType { &self.raw_body_content }
+    pub fn set_raw_body_content(&mut self, raw_body_content: RawBodyContentType) {
+        self.raw_body_content = raw_body_content;
+    }
+
+    pub fn raw_body_content_options(&self) -> Vec<String> { self.raw_body_content_options.clone() }
+    pub fn set_raw_body_content_options(&mut self, raw_body_content_options: Vec<String>) {
+        self.raw_body_content_options = raw_body_content_options;
+    }
+
+    pub fn raw_body_content_sel_index(&self) -> &u8 { &self.raw_body_content_sel_index }
+    pub fn set_raw_body_content_sel_index(&mut self, raw_body_content_sel_index: u8) {
+        self.raw_body_content_sel_index = raw_body_content_sel_index;
+    }
 
     pub fn cursor_position(&self) -> &BodyCursorPosition { &self.cursor_position }
     pub fn set_cursor_position(&mut self, bcp: BodyCursorPosition) {
@@ -191,6 +205,52 @@ impl BodyContent {
         ];
 
         BODY_CONTENT_TYPES.iter()
+    }
+
+    pub fn as_string_vec() -> Vec<String> {
+        let mut v: Vec<String> = vec![];
+
+        for item in Self::iter() {
+            v.push(item.to_string());
+        }
+
+        v
+    }
+}
+
+impl RawBodyContentType {
+    pub fn to_string(&self) -> String {
+        match self {
+            RawBodyContentType::Text(_a) => String::from("Text"),
+            RawBodyContentType::Json(_a) => String::from("JSON"),
+            RawBodyContentType::Html(_a) => String::from("HTML"),
+            RawBodyContentType::Xml(_a) => String::from("XML"),
+        }
+    }
+
+    pub fn from_string(input: String) -> Self {
+        RawBodyContentType::from_str(&input)
+    }
+
+    pub fn from_str(input: &str) -> Self {
+        match input {
+            "Text" => RawBodyContentType::Text(String::default()),
+            "JSON" => RawBodyContentType::Json(String::default()),
+            "HTML" => RawBodyContentType::Html(String::default()),
+            "XML" => RawBodyContentType::Xml(String::default()),
+            _ => RawBodyContentType::Text(String::default()),
+        }
+    }
+
+    pub fn iter() -> Iter<'static, RawBodyContentType> {
+        static RAW_BODY_CONTENT_TYPES: [RawBodyContentType; 4] = [
+            RawBodyContentType::Text(EMPTY_STRING),
+            RawBodyContentType::Json(EMPTY_STRING),
+            RawBodyContentType::Html(EMPTY_STRING),
+            RawBodyContentType::Xml(EMPTY_STRING),
+        ];
+
+        RAW_BODY_CONTENT_TYPES.iter()
     }
 
     pub fn as_string_vec() -> Vec<String> {

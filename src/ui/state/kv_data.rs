@@ -1,6 +1,6 @@
 const EMPTY_STRING: String = String::new();
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct KVData {
     key: String,
     value: String,
