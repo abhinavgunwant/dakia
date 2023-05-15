@@ -7,12 +7,20 @@ use reqwest::{
 };
 
 use jsonxf::pretty_print;
-use crate::ui::state::{UiState, app_status::AppStatus};
+use crate::ui::state::{
+    UiState, app_status::AppStatus,
+    body::{ BodyContent, RawBodyContentType }
+};
 
 const APP_JSON: &str = "application/json";
-const TEXT_HTML: &str = "text/html";
+const APP_FORM_URL_ENCODED: &str = "application/x-www-form-urlencoded";
 const APP_XHTML_XML: &str = "application/xhtml+xml";
 const APP_XML: &str = "application/xml";
+const MULTIPART_FORM_DATA: &str = "multipart/form-data";
+const TEXT_HTML: &str = "text/html";
+const TEXT_PLAIN: &str = "text/plain";
+
+const CONTENT_TYPE: &str = "content-type";
 
 pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
     let mut def_headers: HeaderMap = HeaderMap::new();
@@ -30,14 +38,14 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
         .default_headers(def_headers)
         .build()?;
 
-
     let mut request = client.request(
         uistate.method(),
         uistate.url_deconst().to_string()
     );
 
+    let mut headers: HeaderMap = HeaderMap::new();
+
     if !uistate.request_headers().is_empty() {
-        let mut headers: HeaderMap = HeaderMap::new();
 
         for header in uistate.request_headers().iter() {
             if !header.key().is_empty() && !header.value().is_empty() {
@@ -47,9 +55,92 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                 );
             }
         }
-
-        request = request.headers(headers);
     }
+
+    // Check if there is already a header that matches the body content type
+    if uistate.method() != Method::GET {
+        match uistate.body().body_content() {
+            BodyContent::FormData(_) => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(MULTIPART_FORM_DATA)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(MULTIPART_FORM_DATA).unwrap()
+                    );
+                }
+            }
+
+            BodyContent::FormURLEncoded(_) => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(APP_FORM_URL_ENCODED)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(APP_FORM_URL_ENCODED).unwrap()
+                    );
+                }
+            }
+
+            BodyContent::Raw(_) => {
+                match uistate.body().raw_body_content() {
+                    RawBodyContentType::Json(_) => {
+                        if !(
+                            headers.contains_key(CONTENT_TYPE)
+                            && headers.get(CONTENT_TYPE).unwrap().eq(APP_JSON)
+                        ) {
+                            headers.insert(
+                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                                HeaderValue::from_str(APP_JSON).unwrap()
+                            );
+                        }
+                    }
+
+                    RawBodyContentType::Xml(_) => {
+                        if !(
+                            headers.contains_key(CONTENT_TYPE)
+                            && headers.get(CONTENT_TYPE).unwrap().eq(APP_XML)
+                        ) {
+                            headers.insert(
+                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                                HeaderValue::from_str(APP_XML).unwrap()
+                            );
+                        }
+                    }
+
+                    RawBodyContentType::Html(_) => {
+                        if !(
+                            headers.contains_key(CONTENT_TYPE)
+                            && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_HTML)
+                        ) {
+                            headers.insert(
+                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                                HeaderValue::from_str(TEXT_HTML).unwrap()
+                            );
+                        }
+                    }
+
+                    RawBodyContentType::Text(_) => {
+                        if !(
+                            headers.contains_key(CONTENT_TYPE)
+                            && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_PLAIN)
+                        ) {
+                            headers.insert(
+                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                                HeaderValue::from_str(TEXT_PLAIN).unwrap()
+                            );
+                        }
+                    }
+                }
+            }
+
+            _ => {}
+        }
+    }
+
+    request = request.headers(headers);
 
     let response = request.send()?;
 //    let response = client.get(uistate.url_deconst().to_string()).send()?;

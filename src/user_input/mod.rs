@@ -279,15 +279,12 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                     BodyContent::from_string(selected_option)
                                                 );
 
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement
-                                                            ::ContentType(false)
-                                                    );
+                                                body.set_active_body_element(
+                                                    BodyUIElement::ContentType(false)
+                                                );
                                             } else {
                                                 uistate.body_mut().set_active_body_element(
-                                                    BodyUIElement
-                                                        ::ContentType(true)
+                                                    BodyUIElement::ContentType(true)
                                                 );
                                             }
                                         }
