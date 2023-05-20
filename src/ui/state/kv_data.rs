@@ -7,7 +7,9 @@ pub struct KVData {
 }
 
 impl KVData {
-    pub const fn default_const() -> Self { Self { key: EMPTY_STRING, value: EMPTY_STRING } }
+    pub const fn default_const() -> Self {
+        Self { key: EMPTY_STRING, value: EMPTY_STRING }
+    }
 
     pub fn new(key: String, value: String) -> Self { KVData { key, value } }
 

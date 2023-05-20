@@ -30,7 +30,8 @@ pub struct Select {
     variant: SelectVariant,
 
     /// Index of the `options` vector that is selected by default
-    default_index: Option<u8>,
+    default_index: u8,
+    display_index: u8,
 
     /// Represented the element that is being highlighted when the this widget
     /// is in the `opened` state.
@@ -55,7 +56,8 @@ impl Default for Select {
             variant: SelectVariant::default(),
 
             /// Index of the `options` vector that is selected by default
-            default_index: None,
+            default_index: 0,
+            display_index: 0,
 
             /// Represented the element that is being highlighted when the this widget
             /// is in the `opened` state.
@@ -83,6 +85,7 @@ impl Widget for Select {
         match self.variant {
             SelectVariant::Outline => {
                 let style: Style;
+                let show_scrollbar: bool = self.get_options().len() as u16 > *self.get_disp_content_length() as u16;
 
                 if *self.is_active() {
                     style = *self.get_active_style();
@@ -129,19 +132,30 @@ impl Widget for Select {
                         area.x,
                         area.y + 2,
                         area.width,
-                        5
+                        6
                     );
 
                     let clear = Clear;
                     clear.render(popup_rect, buf);
 
                     // render the popup items
-                    let mut popup_element_rect = Rect::new(
-                        popup_rect.x + 1,
-                        popup_rect.y - 1,
-                        popup_rect.width - 2,
-                        1,
-                    );
+                    let mut popup_element_rect;
+
+                    if show_scrollbar {
+                        popup_element_rect = Rect::new(
+                            popup_rect.x + 1,
+                            popup_rect.y - 1,
+                            popup_rect.width - 4,
+                            1,
+                        );
+                    } else {
+                        popup_element_rect = Rect::new(
+                            popup_rect.x + 1,
+                            popup_rect.y - 1,
+                            popup_rect.width - 2,
+                            1,
+                        );
+                    }
 
                     let so = *self.get_scroll_offset() as usize;
                     let mut d =  *self.get_disp_content_length() as usize;
@@ -150,7 +164,7 @@ impl Widget for Select {
                         d = self.get_options().len();
                     }
 
-                    let items_to_display = &self.get_options()[so..d];
+                    let items_to_display = &self.get_options()[so..(so+d)];
                     let highlight_item_style = Style::default()
                         .bg(Color::Yellow).fg(Color::Black);
                     let default_item_style = Style::default()
@@ -161,7 +175,7 @@ impl Widget for Select {
 
                         popup_element_rect.y += 1 as u16;
 
-                        if i as u8 == *self.get_sel_index() {
+                        if (so + i) as u8 == *self.get_sel_index() {
                             let highlight_block = Block::default()
                                 .style(highlight_item_style);
 
@@ -186,18 +200,19 @@ impl Widget for Select {
                         paragraph.render(popup_element_par_rect, buf);
                     }
 
-                    if self.get_options().len() as u16 > *self.get_disp_content_length() as u16 {
+                    if show_scrollbar {
+                        let opt_length = *self.get_disp_content_length() as u16;
                         let (thumb_height, thumb_pos) = scrollbar_pos(
-                            *self.get_disp_content_length() as u16,
-                            *self.get_scroll_offset() as u16,
+                            opt_length,
+                            opt_length + *self.get_scroll_offset() as u16,
                             self.get_options().len() as u16,
                         );
 
                         let scrollbar_rect = Rect::new(
-                            popup_rect.x + popup_rect.width - 1,
+                            popup_rect.x + popup_rect.width - 2,
                             popup_rect.y,
                             1,
-                            popup_rect.height,
+                            popup_rect.height - 1,
                         );
 
                         let scrollbar_thumb_rect = Rect::new(
@@ -269,9 +284,9 @@ impl Select {
         self
     }
 
-    pub fn get_default_index(&self) -> &Option<u8> { &self.default_index }
+    pub fn get_default_index(&self) -> &u8 { &self.default_index }
     pub fn default_index(mut self, indx: u8) -> Self {
-        self.default_index = Some(indx);
+        self.default_index = indx;
         self
     }
 

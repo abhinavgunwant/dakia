@@ -60,7 +60,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
     // Check if there is already a header that matches the body content type
     if uistate.method() != Method::GET {
         match uistate.body().body_content() {
-            BodyContent::FormData(_) => {
+            BodyContent::FormData => {
                 if !(
                     headers.contains_key(CONTENT_TYPE)
                     && headers.get(CONTENT_TYPE).unwrap().eq(MULTIPART_FORM_DATA)
@@ -72,7 +72,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                 }
             }
 
-            BodyContent::FormURLEncoded(_) => {
+            BodyContent::FormURLEncoded => {
                 if !(
                     headers.contains_key(CONTENT_TYPE)
                     && headers.get(CONTENT_TYPE).unwrap().eq(APP_FORM_URL_ENCODED)
@@ -86,7 +86,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
 
             BodyContent::Raw(_) => {
                 match uistate.body().raw_body_content() {
-                    RawBodyContentType::Json(_) => {
+                    RawBodyContentType::Json => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(APP_JSON)
@@ -98,7 +98,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Xml(_) => {
+                    RawBodyContentType::Xml => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(APP_XML)
@@ -110,7 +110,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Html(_) => {
+                    RawBodyContentType::Html => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_HTML)
@@ -122,7 +122,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Text(_) => {
+                    RawBodyContentType::Text => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_PLAIN)

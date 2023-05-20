@@ -57,10 +57,10 @@ pub fn render_tab_content<B: Backend>(
 
 pub fn render_kv_tab<B: Backend>(
     f: &mut Frame<B>,
-        uistate: &mut UiState,
-        render_tab: RequestTabs,
-        rect: Rect
-    ) {
+    uistate: &UiState,
+    render_tab: RequestTabs,
+    rect: Rect
+) {
     let params: KVTabState;
     let kv_data;
 

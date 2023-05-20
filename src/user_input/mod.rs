@@ -245,8 +245,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                             );
                                                     }
 
-                                                    BodyContent::FormData(_)
-                                                        | BodyContent::FormURLEncoded(_) => {
+                                                    BodyContent::FormData
+                                                        | BodyContent::FormURLEncoded => {
                                                         uistate.body_mut()
                                                             .set_active_body_element(
                                                                 BodyUIElement::TextArea
@@ -292,8 +292,13 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         KeyCode::Up => {
                                             if *opened {
                                                 let s = *uistate.body().body_content_sel_index();
+                                                let offset = *uistate.body().body_content_scroll_offset();
 
                                                 if s > 0 {
+                                                    if offset == s {
+                                                        uistate.body_mut().set_body_content_scroll_offset(offset - 1);
+                                                    }
+
                                                     uistate.body_mut().set_body_content_sel_index(s - 1);
                                                 }
                                             }
@@ -301,9 +306,16 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
 
                                         KeyCode::Down => {
                                             if *opened {
-                                                let s = *uistate.body().body_content_sel_index() + 1;
+                                                let current_selection = *uistate.body().body_content_sel_index();
+                                                let s = current_selection + 1;
+                                                let offset = *uistate.body().body_content_scroll_offset();
+                                                let selection_at_bottom: bool = (current_selection - offset) == 4;
 
                                                 if s < uistate.body().body_content_options().len() as u8 {
+                                                    if selection_at_bottom {
+                                                        uistate.body_mut().set_body_content_scroll_offset(offset + 1);
+                                                    }
+
                                                     uistate.body_mut().set_body_content_sel_index(s);
                                                 }
                                             } else if key.modifiers == KeyModifiers::CONTROL {

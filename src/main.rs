@@ -4,6 +4,8 @@ mod api;
 
 use std::io;
 
+use log::{ info, error };
+use log4rs;
 use tui::{
     backend::{ Backend, CrosstermBackend },
     Terminal,
@@ -22,8 +24,13 @@ use ui::{ ui_func, state::UiState };
 
 use user_input::process_user_input;
 
+const VERSION: &str = "v0.0.1";
+
 fn main() -> Result<(), io::Error> {
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
     let uistate = UiState::default();
+
+    info!("dakia {}", VERSION);
 
     enable_raw_mode()?;
 
@@ -47,7 +54,7 @@ fn main() -> Result<(), io::Error> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("{:?}", err);
+        error!("{:?}", err);
     }
 
     Ok(())

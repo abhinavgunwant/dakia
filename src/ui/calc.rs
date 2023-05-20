@@ -6,8 +6,9 @@
 /// - `disp_content_len`: Displayed content length or the height of the
 ///     window or box in which content is being displayed.
 ///
-/// - `disp_content_offset`: The offset length of the content being displayed.
-/// Or, "How far is the content being displayed is from the start/top?"
+/// - `disp_content_offset`: The offset length of the last line of the content
+///     being displayed. Or, "How far is the content being displayed is from
+///     the start/top?"
 ///
 /// - `total_content_len`: Length of the total content.
 pub fn scrollbar_pos(

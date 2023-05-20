@@ -1,7 +1,7 @@
 //! State of the tab that shows and sets key-value data.
 //! Used in "URL Params" and "Headers" tabs.
 //! Keeps concerns separate from `QueryParams` and `HeaderMap`.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct KVTabState {
     /// The param being edited/active (index of `params`)
     active_row: u16,
