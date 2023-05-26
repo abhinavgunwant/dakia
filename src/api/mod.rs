@@ -84,9 +84,9 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                 }
             }
 
-            BodyContent::Raw(_) => {
-                match uistate.body().raw_body_content() {
-                    RawBodyContentType::Json => {
+//            BodyContent::Raw(_) => {
+//                match uistate.body().raw_body_content() {
+                    BodyContent::Json => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(APP_JSON)
@@ -98,7 +98,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Xml => {
+                    BodyContent::Xml => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(APP_XML)
@@ -110,7 +110,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Html => {
+                    BodyContent::Html => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_HTML)
@@ -122,7 +122,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         }
                     }
 
-                    RawBodyContentType::Text => {
+                    BodyContent::Text => {
                         if !(
                             headers.contains_key(CONTENT_TYPE)
                             && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_PLAIN)
@@ -133,8 +133,8 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                             );
                         }
                     }
-                }
-            }
+//                }
+//            }
 
             _ => {}
         }

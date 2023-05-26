@@ -30,28 +30,20 @@ pub fn render_body<B: Backend>(
         .direction(Direction::Horizontal)
         .split(body_content_rect[0]);
 
-    let mut body_content_select = Select::default()
-        .label(String::from(" Content Type "))
-        .default_index(0)
-        .disp_content_length(5)
-        .style(Style::default().fg(Color::White))
-        .scroll_offset(*uistate.body().body_content_scroll_offset())
-        .active_style(Style::default().fg(Color::Yellow))
-        .sel_index(*uistate.body().body_content_sel_index())
-        .options(uistate.body().body_content_options());
-
-    match uistate.body().active_body_element() {
-        BodyUIElement::ContentType(opened) => {
-            body_content_select = body_content_select.active(true).opened(*opened);
-        }
-
-        _ => {}
-    }
-
-    f.render_widget(body_content_select, body_top_rect[0]);
-
     match uistate.body().body_content() {
         BodyContent::FormData => {
+        }
+
+        BodyContent::Text | BodyContent::Html | BodyContent::Xml => {
+            let text_multi_line = TextInput::default()
+                .multi_line(true)
+                .label(String::from(" Content "))
+                .borders(Borders::ALL)
+                .active(*uistate.body().active_body_element() == BodyUIElement::TextArea)
+                .border_style(Style::default().fg(Color::White))
+                .text(String::from(uistate.method().as_str()));
+
+            f.render_widget(text_multi_line, body_content_rect[1]);
         }
 
 //        BodyContent::Raw(_) => {
@@ -75,5 +67,25 @@ pub fn render_body<B: Backend>(
 
         _ => {}
     }
+
+    let mut body_content_select = Select::default()
+        .label(String::from(" Content Type "))
+        .default_index(0)
+        .disp_content_length(5)
+        .style(Style::default().fg(Color::White))
+        .scroll_offset(*uistate.body().body_content_scroll_offset())
+        .active_style(Style::default().fg(Color::Yellow))
+        .sel_index(*uistate.body().body_content_sel_index())
+        .options(uistate.body().body_content_options());
+
+    match uistate.body().active_body_element() {
+        BodyUIElement::ContentType(opened) => {
+            body_content_select = body_content_select.active(true).opened(*opened);
+        }
+
+        _ => {}
+    }
+
+    f.render_widget(body_content_select, body_top_rect[0]);
 }
 

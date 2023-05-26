@@ -28,7 +28,7 @@ pub enum BodyContent {
     Json,
     Html,
     Xml,
-    Raw(RawBodyContentType),
+//    Raw(RawBodyContentType),
 }
 
 /// To help with syntax highlighting later-on!
@@ -67,6 +67,9 @@ pub struct Body {
 
     /// The KV data for the body.
     kv_data: Vec<KVData>,
+
+    /// Text data for the body
+    text_data: String,
 
     /// The length of the select widget popup content length.
     disp_content_len: u8,
@@ -151,28 +154,6 @@ impl Body {
         self.cursor_position = bcp;
     }
 
-    pub fn body_content_types(&self) -> Vec<String> {
-        let mut v: Vec<String> = vec![];
-
-        v.push(String::from("None"));
-        v.push(String::from("Form Data"));
-        v.push(String::from("Form URL-encoded"));
-        v.push(String::from("Raw"));
-
-        v
-    }
-
-    pub fn body_raw_content_types(&self) -> Vec<String> {
-        let mut v: Vec<String> = vec![];
-
-        v.push(String::from("Text"));
-        v.push(String::from("JSON"));
-        v.push(String::from("HTML"));
-        v.push(String::from("XML"));
-
-        v
-    }
-
     pub fn disp_content_len(&self) -> &u8 { &self.disp_content_len }
     pub fn set_disp_content_len(&mut self, disp_content_len: u8) {
         self.disp_content_len = disp_content_len;
@@ -186,15 +167,15 @@ impl Body {
     }
 }
 
-impl BodyUIElement {
-    pub fn is_opened(&self) -> bool {
-        match self {
-            Self::ContentType(opened) => *opened,
-            Self::RawContentType(opened) => *opened,
-            _ => false,
-        }
-    }
-}
+//impl BodyUIElement {
+//    pub fn is_opened(&self) -> bool {
+//        match self {
+//            Self::ContentType(opened) => *opened,
+//            Self::RawContentType(opened) => *opened,
+//            _ => false,
+//        }
+//    }
+//}
 
 impl BodyContent {
     pub fn to_string(&self) -> String {
@@ -206,7 +187,7 @@ impl BodyContent {
             BodyContent::Json => String::from("Json"),
             BodyContent::Html => String::from("Html"),
             BodyContent::Xml => String::from("Xml"),
-            BodyContent::Raw(_a) => String::from("Raw"),
+            // BodyContent::Raw(_a) => String::from("Raw"),
         }
     }
 
@@ -219,13 +200,17 @@ impl BodyContent {
             "None" => BodyContent::NONE,
             "Form Data" => BodyContent::FormData,
             "Form URL-encoded" => BodyContent::FormURLEncoded,
-            "Raw" => BodyContent::Raw(RawBodyContentType::default()),
+            "Text" => BodyContent::Text,
+            "Json" => BodyContent::Json,
+            "Html" => BodyContent::Html,
+            "Xml" => BodyContent::Xml,
+            //"Raw" => BodyContent::Raw(RawBodyContentType::default()),
             _ => BodyContent::default(),
         }
     }
 
     pub fn iter() -> Iter<'static, BodyContent> {
-        static BODY_CONTENT_TYPES: [BodyContent; 8] = [
+        static BODY_CONTENT_TYPES: [BodyContent; 7] = [
             BodyContent::NONE,
             BodyContent::FormData,
             BodyContent::FormURLEncoded,
@@ -233,7 +218,7 @@ impl BodyContent {
             BodyContent::Text,
             BodyContent::Html,
             BodyContent::Xml,
-            BodyContent::Raw(RawBodyContentType::Text),
+            // BodyContent::Raw(RawBodyContentType::Text),
         ];
 
         BODY_CONTENT_TYPES.iter()

@@ -235,39 +235,39 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
 
                                 BodyUIElement::ContentType(opened) => {
                                     match key.code {
-                                        KeyCode::Right => {
-                                            if key.modifiers == KeyModifiers::CONTROL {
-                                                match uistate.body().body_content() {
-                                                    BodyContent::Raw(_) => {
-                                                        uistate.body_mut()
-                                                            .set_active_body_element(
-                                                                BodyUIElement::RawContentType(false)
-                                                            );
-                                                    }
-
-                                                    BodyContent::FormData
-                                                        | BodyContent::FormURLEncoded => {
-                                                        uistate.body_mut()
-                                                            .set_active_body_element(
-                                                                BodyUIElement::TextArea
-                                                            );
-                                                    }
-
-                                                    _ => {}
-                                                }
-                                            }
-                                        }
-
-                                        KeyCode::Left => {
-                                            if key.modifiers == KeyModifiers::CONTROL {
-                                                if *uistate.body().body_content() != BodyContent::NONE {
-                                                    uistate.body_mut()
-                                                        .set_active_body_element(
-                                                            BodyUIElement::TextArea
-                                                        );
-                                                }
-                                            }
-                                        }
+//                                        KeyCode::Right => {
+//                                            if key.modifiers == KeyModifiers::CONTROL {
+//                                                match uistate.body().body_content() {
+//                                                    BodyContent::Raw(_) => {
+//                                                        uistate.body_mut()
+//                                                            .set_active_body_element(
+//                                                                BodyUIElement::RawContentType(false)
+//                                                            );
+//                                                    }
+//
+//                                                    BodyContent::FormData
+//                                                        | BodyContent::FormURLEncoded => {
+//                                                        uistate.body_mut()
+//                                                            .set_active_body_element(
+//                                                                BodyUIElement::TextArea
+//                                                            );
+//                                                    }
+//
+//                                                    _ => {}
+//                                                }
+//                                            }
+//                                        }
+//
+//                                        KeyCode::Left => {
+//                                            if key.modifiers == KeyModifiers::CONTROL {
+//                                                if *uistate.body().body_content() != BodyContent::NONE {
+//                                                    uistate.body_mut()
+//                                                        .set_active_body_element(
+//                                                            BodyUIElement::TextArea
+//                                                        );
+//                                                }
+//                                            }
+//                                        }
 
                                         KeyCode::Enter => {
                                             if *opened {

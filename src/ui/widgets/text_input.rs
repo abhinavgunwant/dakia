@@ -20,6 +20,7 @@ pub struct TextInput {
     border_type: BorderType,
     style: Style,
     active: bool,
+    multi_line: bool,
 }
 
 impl Default for TextInput {
@@ -34,6 +35,7 @@ impl Default for TextInput {
             border_type: BorderType::Plain,
             style: Default::default(),
             active: false,
+            multi_line: false,
         }
     }
 }
@@ -50,24 +52,25 @@ impl Widget for TextInput {
         text_area.x += 2;
         text_area.width -= 4;
 
+        // Block
+        let mut block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
         match self.get_label() {
-            Some(label) => {
-                let mut block = Block::default()
-                    .borders(Borders::ALL)
-                    .title(label.as_str())
-                    .border_type(BorderType::Rounded);
-
-                if self.is_active() {
-                    block = block.style(self.get_active_border_style());
-                } else {
-                    block = block.style(*self.get_border_style());
-                }
-
-                block.render(area, buf);
-            },
-            None => {},
+            Some(label) => { block = block.title(label.as_str()); }
+            None => {}
         }
 
+        if self.is_active() {
+            block = block.style(self.get_active_border_style());
+        } else {
+            block = block.style(*self.get_border_style());
+        }
+
+        block.render(area, buf);
+
+        // Text
         match self.get_text() {
             Some (txt) => {
                 if self.is_active() {
@@ -179,6 +182,12 @@ impl TextInput {
     pub fn is_active(&self) -> bool { self.active }
     pub fn active(mut self, active: bool) -> TextInput {
         self.active = active;
+        self
+    }
+
+    pub fn is_multi_line(&self) -> bool { self.active }
+    pub fn multi_line(mut self, multi_line: bool) -> TextInput {
+        self.multi_line = multi_line;
         self
     }
 }
