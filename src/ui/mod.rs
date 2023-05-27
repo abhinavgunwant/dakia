@@ -86,6 +86,7 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
         .label(String::from(" URL "))
         .borders(Borders::ALL)
         .text(uistate.url())
+        .multi_line(false)
         .border_style(Style::default())
         .active_border_style(Style::default().fg(Color::Yellow))
         .active(uistate.active_element() == &UIElement::URL);

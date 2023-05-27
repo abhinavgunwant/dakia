@@ -21,6 +21,7 @@ pub struct TextInput {
     style: Style,
     active: bool,
     multi_line: bool,
+    cursor_pos: u16,
 }
 
 impl Default for TextInput {
@@ -36,6 +37,7 @@ impl Default for TextInput {
             style: Default::default(),
             active: false,
             multi_line: false,
+            cursor_pos: 0,
         }
     }
 }
@@ -75,7 +77,24 @@ impl Widget for TextInput {
             Some (txt) => {
                 if self.is_active() {
                     let mut txt_ = txt.clone();
-                    txt_.push('\u{2502}');
+
+                    if !self.is_multi_line() {
+                        txt_.push('\u{2502}');
+                    } else {
+                        let cursor_block = Block::default()
+                            .style(Style::default().fg(Color::Black).bg(Color::Yellow))
+                            .borders(Borders::NONE);
+
+                        cursor_block.render(
+                            Rect::new(
+                                text_area.x + self.cursor_pos,
+                                text_area.y,
+                                1,
+                                1
+                            ),
+                            buf
+                        );
+                    }
 
                     let text = Paragraph::new(
                         Span::styled(txt_, self.get_active_border_style())
@@ -90,12 +109,21 @@ impl Widget for TextInput {
 
             None => {
                 if self.is_active() {
-                    let txt = String::from('\u{2502}');
+                    if !self.is_multi_line() {
+                        let txt = String::from('\u{2502}');
 
-                    let text = Paragraph::new(
-                        Span::styled(txt, self.get_active_border_style())
-                    );
-                    text.render(text_area, buf);
+                        let text = Paragraph::new(
+                            Span::styled(txt, self.get_active_border_style())
+                        );
+
+                        text.render(text_area, buf);
+                    } else {
+                        let cursor_block = Block::default()
+                            .style(Style::default().fg(Color::Black).bg(Color::Yellow))
+                            .borders(Borders::NONE);
+
+                        cursor_block.render(Rect::new(text_area.x, text_area.y, 1, 1), buf);
+                    }
                 }
             },
         }
@@ -188,6 +216,12 @@ impl TextInput {
     pub fn is_multi_line(&self) -> bool { self.active }
     pub fn multi_line(mut self, multi_line: bool) -> TextInput {
         self.multi_line = multi_line;
+        self
+    }
+    
+    pub fn get_cursor_pos(&self) -> u16 { self.cursor_pos.clone() }
+    pub fn cursor_pos(mut self, cursor_pos: u16) -> TextInput {
+        self.cursor_pos = cursor_pos;
         self
     }
 }

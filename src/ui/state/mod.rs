@@ -7,6 +7,7 @@ pub mod url;
 pub mod response;
 pub mod app_status;
 pub mod body;
+pub mod text_edit;
 
 //use std::fmt::{ Display, Formatter, Result as FResult };
 use reqwest::Method;

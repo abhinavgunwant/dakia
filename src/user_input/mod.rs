@@ -3,11 +3,11 @@ pub mod kv_tab;
 use std::io::Error;
 
 use crossterm::event::{ self, Event, KeyCode, KeyModifiers };
-use reqwest::Method;
 use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement,
         request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
+        text_edit::TextEditMoveDirection,
         body::{ BodyUIElement, BodyContent, RawBodyContentType },
     },
     api::call_api,
@@ -226,7 +226,54 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                     .set_active_body_element(
                                                         BodyUIElement::ContentType(false)
                                                     );
+                                            } else {
+                                                uistate.body_mut()
+                                                    .text_data_mut()
+                                                    .move_cursor(TextEditMoveDirection::Up, false);
                                             }
+                                        }
+                                        
+                                        KeyCode::Down => {
+                                            uistate.body_mut()
+                                                .text_data_mut()
+                                                .move_cursor(TextEditMoveDirection::Down, false);
+                                        }
+
+                                        KeyCode::Left => {
+                                            uistate.body_mut()
+                                                .text_data_mut()
+                                                .move_cursor(TextEditMoveDirection::Left, false);
+                                        }
+
+                                        KeyCode::Right => {
+                                            uistate.body_mut()
+                                                .text_data_mut()
+                                                .move_cursor(TextEditMoveDirection::Right, false);
+                                        }
+
+                                        KeyCode::End => {
+                                            uistate.body_mut().text_data_mut()
+                                                .move_cursor(TextEditMoveDirection::End, false);
+                                        }
+
+                                        KeyCode::Home => {
+                                            uistate.body_mut().text_data_mut()
+                                                .move_cursor(TextEditMoveDirection::Home, false);
+                                        }
+
+                                        KeyCode::Char(c) => {
+                                            uistate.body_mut().text_data_mut()
+                                                .insert_char(c);
+                                        }
+
+                                        KeyCode::Backspace => {
+                                            uistate.body_mut().text_data_mut()
+                                                .delete_char();
+                                        }
+
+                                        KeyCode::Delete => {
+                                            uistate.body_mut().text_data_mut()
+                                                .delete_char_to_right();
                                         }
 
                                         _ => {}
@@ -332,79 +379,79 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                     }
                                 }
 
-                                BodyUIElement::RawContentType(opened) => {
-                                    match key.code {
-                                        KeyCode::Right => {
-                                            if key.modifiers == KeyModifiers::CONTROL {
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement::TextArea
-                                                    );
-                                            }
-                                        }
-
-                                        KeyCode::Left => {
-                                            if key.modifiers == KeyModifiers::CONTROL {
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement::ContentType(false)
-                                                    );
-                                            }
-                                        }
-
-                                        KeyCode::Up => {
-                                            if *opened {
-                                                let s = *uistate.body().raw_body_content_sel_index();
-
-                                                if s > 0 {
-                                                    uistate.body_mut().set_raw_body_content_sel_index(s - 1);
-                                                }
-                                            }
-                                        }
-
-                                        KeyCode::Down => {
-                                            if *opened {
-                                                let s = *uistate.body().raw_body_content_sel_index() + 1;
-
-                                                if s < uistate.body().raw_body_content_options().len() as u8 {
-                                                    uistate.body_mut().set_raw_body_content_sel_index(s);
-                                                }
-                                            } else if key.modifiers == KeyModifiers::CONTROL {
-                                                if *uistate.body().body_content() != BodyContent::NONE {
-                                                    uistate.body_mut()
-                                                        .set_active_body_element(
-                                                            BodyUIElement::TextArea
-                                                        );
-                                                }
-                                            }
-                                        }
-
-                                        KeyCode::Enter => {
-                                            if *opened {
-                                                let body = uistate.body_mut();
-                                                let index = *body.raw_body_content_sel_index() as usize;
-                                                let selected_option: String = body.raw_body_content_options()[index].clone();
-
-                                                body.set_raw_body_content(
-                                                    RawBodyContentType::from_string(selected_option)
-                                                );
-
-                                                uistate.body_mut()
-                                                    .set_active_body_element(
-                                                        BodyUIElement
-                                                            ::RawContentType(false)
-                                                    );
-                                            } else {
-                                                uistate.body_mut().set_active_body_element(
-                                                    BodyUIElement
-                                                        ::RawContentType(true)
-                                                );
-                                            }
-                                        }
-
-                                        _ => {}
-                                    }
-                                }
+//                                BodyUIElement::RawContentType(opened) => {
+//                                    match key.code {
+//                                        KeyCode::Right => {
+//                                            if key.modifiers == KeyModifiers::CONTROL {
+//                                                uistate.body_mut()
+//                                                    .set_active_body_element(
+//                                                        BodyUIElement::TextArea
+//                                                    );
+//                                            }
+//                                        }
+//
+//                                        KeyCode::Left => {
+//                                            if key.modifiers == KeyModifiers::CONTROL {
+//                                                uistate.body_mut()
+//                                                    .set_active_body_element(
+//                                                        BodyUIElement::ContentType(false)
+//                                                    );
+//                                            }
+//                                        }
+//
+//                                        KeyCode::Up => {
+//                                            if *opened {
+//                                                let s = *uistate.body().raw_body_content_sel_index();
+//
+//                                                if s > 0 {
+//                                                    uistate.body_mut().set_raw_body_content_sel_index(s - 1);
+//                                                }
+//                                            }
+//                                        }
+//
+//                                        KeyCode::Down => {
+//                                            if *opened {
+//                                                let s = *uistate.body().raw_body_content_sel_index() + 1;
+//
+//                                                if s < uistate.body().raw_body_content_options().len() as u8 {
+//                                                    uistate.body_mut().set_raw_body_content_sel_index(s);
+//                                                }
+//                                            } else if key.modifiers == KeyModifiers::CONTROL {
+//                                                if *uistate.body().body_content() != BodyContent::NONE {
+//                                                    uistate.body_mut()
+//                                                        .set_active_body_element(
+//                                                            BodyUIElement::TextArea
+//                                                        );
+//                                                }
+//                                            }
+//                                        }
+//
+//                                        KeyCode::Enter => {
+//                                            if *opened {
+//                                                let body = uistate.body_mut();
+//                                                let index = *body.raw_body_content_sel_index() as usize;
+//                                                let selected_option: String = body.raw_body_content_options()[index].clone();
+//
+//                                                body.set_raw_body_content(
+//                                                    RawBodyContentType::from_string(selected_option)
+//                                                );
+//
+//                                                uistate.body_mut()
+//                                                    .set_active_body_element(
+//                                                        BodyUIElement
+//                                                            ::RawContentType(false)
+//                                                    );
+//                                            } else {
+//                                                uistate.body_mut().set_active_body_element(
+//                                                    BodyUIElement
+//                                                        ::RawContentType(true)
+//                                                );
+//                                            }
+//                                        }
+//
+//                                        _ => {}
+//                                    }
+//                                }
                             }
                         }
 

@@ -41,7 +41,8 @@ pub fn render_body<B: Backend>(
                 .borders(Borders::ALL)
                 .active(*uistate.body().active_body_element() == BodyUIElement::TextArea)
                 .border_style(Style::default().fg(Color::White))
-                .text(String::from(uistate.method().as_str()));
+                .cursor_pos(uistate.body().text_data().cursor_pos())
+                .text(uistate.body().text_data().text());
 
             f.render_widget(text_multi_line, body_content_rect[1]);
         }

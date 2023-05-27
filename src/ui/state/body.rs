@@ -1,5 +1,5 @@
 use std::slice::Iter;
-use super::{ kv_data::KVData, kv_tab_state::KVTabState };
+use super::{ kv_data::KVData, kv_tab_state::KVTabState, text_edit::TextEditState };
 
 /// The UI elements in the body tab (e.g. The "Content Type" selection).
 /// **Note:** the `bool` value in the variant defines whether the body ui
@@ -14,7 +14,7 @@ pub enum BodyUIElement {
     /// The "Raw Content Type" select widget. `true` if it's active.
     /// params
     /// - bool - whether the Select widget is open
-    RawContentType(bool),
+//    RawContentType(bool),
 
     TextArea,
 }
@@ -69,10 +69,10 @@ pub struct Body {
     kv_data: Vec<KVData>,
 
     /// Text data for the body
-    text_data: String,
+    text_data: TextEditState,
 
-    /// The length of the select widget popup content length.
-    disp_content_len: u8,
+    // /// The length of the select widget popup content length.
+    // disp_content_len: u8,
 }
 
 impl Default for Body {
@@ -90,7 +90,8 @@ impl Default for Body {
             raw_body_content_sel_index: 0,
             cursor_position: BodyCursorPosition::default(),
             kv_data,
-            disp_content_len: 5,
+            text_data: TextEditState::default(),
+            //disp_content_len: 5,
         }
     }
 }
@@ -154,10 +155,10 @@ impl Body {
         self.cursor_position = bcp;
     }
 
-    pub fn disp_content_len(&self) -> &u8 { &self.disp_content_len }
-    pub fn set_disp_content_len(&mut self, disp_content_len: u8) {
-        self.disp_content_len = disp_content_len;
-    }
+//    pub fn disp_content_len(&self) -> &u8 { &self.disp_content_len }
+//    pub fn set_disp_content_len(&mut self, disp_content_len: u8) {
+//        self.disp_content_len = disp_content_len;
+//    }
 
     pub fn body_content_scroll_offset(&self) -> &u8 {
         &self.body_content_scroll_offset
@@ -165,6 +166,9 @@ impl Body {
     pub fn set_body_content_scroll_offset(&mut self, offset: u8) {
         self.body_content_scroll_offset = offset;
     }
+
+    pub fn text_data(&self) -> &TextEditState { &self.text_data }
+    pub fn text_data_mut(&mut self) -> &mut TextEditState { &mut self.text_data }
 }
 
 //impl BodyUIElement {
