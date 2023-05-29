@@ -6,6 +6,7 @@ use tui::{
     style::{ Color, Style },
 };
 
+use crate::ui::{ string_chunks, string_chunks_to_spans };
 
 /// A Widget that combines Block with text.
 /// Used as a text input field.
@@ -13,6 +14,7 @@ use tui::{
 pub struct TextInput {
     label: Option<String>,
     text: Option<String>,
+    text_vec: Vec<String>,
     text_alignment: Alignment,
     borders: Borders,
     border_style: Style,
@@ -22,6 +24,8 @@ pub struct TextInput {
     active: bool,
     multi_line: bool,
     cursor_pos: u16,
+    line_number: u16,
+    scroll_offset: u16,
 }
 
 impl Default for TextInput {
@@ -29,6 +33,7 @@ impl Default for TextInput {
         TextInput {
             label: None,
             text: None,
+            text_vec: vec![],
             text_alignment: Alignment::Left,
             borders: Borders::NONE,
             border_style: Style::default(),
@@ -38,6 +43,8 @@ impl Default for TextInput {
             active: false,
             multi_line: false,
             cursor_pos: 0,
+            line_number: 0,
+            scroll_offset: 0,
         }
     }
 }
@@ -73,59 +80,94 @@ impl Widget for TextInput {
         block.render(area, buf);
 
         // Text
-        match self.get_text() {
-            Some (txt) => {
-                if self.is_active() {
-                    let mut txt_ = txt.clone();
+        if self.is_multi_line() {
+            let mut lines: Vec<String> = vec![];
+            let mut text_start: usize = 0;
+            let mut text_end: usize = self.get_text_vec().len();
 
-                    if !self.is_multi_line() {
-                        txt_.push('\u{2502}');
-                    } else {
-                        let cursor_block = Block::default()
-                            .style(Style::default().fg(Color::Black).bg(Color::Yellow))
-                            .borders(Borders::NONE);
+            for line in self.get_text_vec() {
+                if line.len() > text_area.width as usize {
+                    let mut line_divided = string_chunks(line, text_area.width as usize);
 
-                        cursor_block.render(
-                            Rect::new(
-                                text_area.x + self.cursor_pos,
-                                text_area.y,
-                                1,
-                                1
-                            ),
-                            buf
-                        );
-                    }
-
-                    let text = Paragraph::new(
-                        Span::styled(txt_, self.get_active_border_style())
-                    );
-                    text.render(text_area, buf);
+                    lines.append(&mut line_divided);
                 } else {
-                    let text = Paragraph::new(txt.clone())
-                        .style(*self.get_border_style());
-                    text.render(text_area, buf);
+                    lines.push(line.clone());
                 }
-            },
+            }
 
-            None => {
-                if self.is_active() {
-                    if !self.is_multi_line() {
-                        let txt = String::from('\u{2502}');
+            text_end = lines.len();
+
+            if text_end > text_area.height as usize {
+                text_start = self.get_scroll_offset() as usize;
+                text_end = text_start + text_area.height as usize;
+            }
+
+            let text = Paragraph::new(
+                string_chunks_to_spans(&lines[text_start..text_end])
+            );
+            text.render(text_area, buf);
+
+            if self.is_active() {
+                let cursor_block = Block::default()
+                    .style(Style::default().fg(Color::Black).bg(Color::Yellow))
+                    .borders(Borders::NONE);
+
+                cursor_block.render(
+                    Rect::new(
+                        text_area.x + self.cursor_pos,
+                        text_area.y + self.get_line_number()
+                            - self.get_scroll_offset(),
+                        1,
+                        1
+                    ),
+                    buf
+                );
+            }
+        } else {
+            match self.get_text() {
+                Some (txt) => {
+                    if self.is_active() {
+                        let mut txt_ = txt.clone();
+                        txt_.push('\u{2502}');
 
                         let text = Paragraph::new(
-                            Span::styled(txt, self.get_active_border_style())
+                            Span::styled(txt_, self.get_active_border_style())
                         );
-
                         text.render(text_area, buf);
                     } else {
-                        let cursor_block = Block::default()
-                            .style(Style::default().fg(Color::Black).bg(Color::Yellow))
-                            .borders(Borders::NONE);
-
-                        cursor_block.render(Rect::new(text_area.x, text_area.y, 1, 1), buf);
+                        let text = Paragraph::new(txt.clone())
+                            .style(*self.get_border_style());
+                        text.render(text_area, buf);
                     }
-                }
-            },
+                },
+
+                None => {
+                    if self.is_active() {
+                        if !self.is_multi_line() {
+                            let txt = String::from('\u{2502}');
+
+                            let text = Paragraph::new(
+                                Span::styled(txt, self.get_active_border_style())
+                            );
+
+                            text.render(text_area, buf);
+                        } else {
+                            let cursor_block = Block::default()
+                                .style(
+                                    Style::default()
+                                        .fg(Color::Black)
+                                        .bg(Color::Yellow)
+                                )
+                                .borders(Borders::NONE);
+
+                            cursor_block.render(
+                                Rect::new(text_area.x, text_area.y, 1, 1),
+                                buf,
+                            );
+                        }
+                    }
+                },
+            }
         }
     }
 }
@@ -165,6 +207,12 @@ impl TextInput {
             self.text = None;
         }
 
+        self
+    }
+
+    pub fn get_text_vec(&self) -> &Vec<String> { &self.text_vec }
+    pub fn text_vec(mut self, text_vec: Vec<String>) -> TextInput {
+        self.text_vec = text_vec;
         self
     }
 
@@ -222,6 +270,18 @@ impl TextInput {
     pub fn get_cursor_pos(&self) -> u16 { self.cursor_pos.clone() }
     pub fn cursor_pos(mut self, cursor_pos: u16) -> TextInput {
         self.cursor_pos = cursor_pos;
+        self
+    }
+
+    pub fn get_line_number(&self) -> u16 { self.line_number.clone() }
+    pub fn line_number(mut self, line_number: u16) -> TextInput {
+        self.line_number = line_number;
+        self
+    }
+
+    pub fn get_scroll_offset(&self) -> u16 { self.scroll_offset.clone() }
+    pub fn scroll_offset(mut self, scroll_offset: u16) -> TextInput {
+        self.scroll_offset = scroll_offset;
         self
     }
 }

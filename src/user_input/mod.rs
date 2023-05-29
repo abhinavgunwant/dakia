@@ -7,8 +7,7 @@ use crate::{
     ui::state::{
         UiState, InputMode, EditorMode, UIElement,
         request_tabs::RequestTabs, kv_data::KVData, app_status::AppStatus,
-        text_edit::TextEditMoveDirection,
-        body::{ BodyUIElement, BodyContent, RawBodyContentType },
+        text_edit::TextEditMoveDirection, body::{ BodyUIElement, BodyContent },
     },
     api::call_api,
     user_input::kv_tab::{ KVTabOperation, process_kv_tab_input },
@@ -242,13 +241,19 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         KeyCode::Left => {
                                             uistate.body_mut()
                                                 .text_data_mut()
-                                                .move_cursor(TextEditMoveDirection::Left, false);
+                                                .move_cursor(
+                                                    TextEditMoveDirection::Left,
+                                                    key.modifiers == KeyModifiers::CONTROL
+                                                );
                                         }
 
                                         KeyCode::Right => {
                                             uistate.body_mut()
                                                 .text_data_mut()
-                                                .move_cursor(TextEditMoveDirection::Right, false);
+                                                .move_cursor(
+                                                    TextEditMoveDirection::Right,
+                                                    key.modifiers == KeyModifiers::CONTROL
+                                                );
                                         }
 
                                         KeyCode::End => {
@@ -259,6 +264,10 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         KeyCode::Home => {
                                             uistate.body_mut().text_data_mut()
                                                 .move_cursor(TextEditMoveDirection::Home, false);
+                                        }
+
+                                        KeyCode::Enter => {
+                                            uistate.body_mut().text_data_mut().new_line();
                                         }
 
                                         KeyCode::Char(c) => {

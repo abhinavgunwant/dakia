@@ -31,8 +31,7 @@ pub fn render_body<B: Backend>(
         .split(body_content_rect[0]);
 
     match uistate.body().body_content() {
-        BodyContent::FormData => {
-        }
+        BodyContent::FormData => {}
 
         BodyContent::Text | BodyContent::Html | BodyContent::Xml => {
             let text_multi_line = TextInput::default()
@@ -41,30 +40,12 @@ pub fn render_body<B: Backend>(
                 .borders(Borders::ALL)
                 .active(*uistate.body().active_body_element() == BodyUIElement::TextArea)
                 .border_style(Style::default().fg(Color::White))
+                .line_number(uistate.body().text_data().line_number())
                 .cursor_pos(uistate.body().text_data().cursor_pos())
-                .text(uistate.body().text_data().text());
+                .text_vec(uistate.body().text_data().text_vec());
 
             f.render_widget(text_multi_line, body_content_rect[1]);
         }
-
-//        BodyContent::Raw(_) => {
-//            let mut raw_body_content_select = Select::default()
-//                .label(String::from(" Raw Content Type "))
-//                .default_index(0)
-//                .disp_content_length(*uistate.body().disp_content_len())
-//                .sel_index(*uistate.body().raw_body_content_sel_index())
-//                .options(uistate.body().raw_body_content_options());
-//
-//            match uistate.body().active_body_element() {
-//                BodyUIElement::RawContentType(opened) => {
-//                    raw_body_content_select = raw_body_content_select.active(true).opened(*opened);
-//                }
-//
-//                _ => {}
-//            }
-//
-//            f.render_widget(raw_body_content_select, body_top_rect[1]);
-//        }
 
         _ => {}
     }
