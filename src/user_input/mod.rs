@@ -228,14 +228,22 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                             } else {
                                                 uistate.body_mut()
                                                     .text_data_mut()
-                                                    .move_cursor(TextEditMoveDirection::Up, false);
+                                                    .move_cursor(
+                                                        TextEditMoveDirection::Up,
+                                                        false,
+                                                        key.modifiers == KeyModifiers::SHIFT,
+                                                    );
                                             }
                                         }
                                         
                                         KeyCode::Down => {
                                             uistate.body_mut()
                                                 .text_data_mut()
-                                                .move_cursor(TextEditMoveDirection::Down, false);
+                                                .move_cursor(
+                                                    TextEditMoveDirection::Down,
+                                                    false,
+                                                    key.modifiers == KeyModifiers::SHIFT,
+                                                );
                                         }
 
                                         KeyCode::Left => {
@@ -243,7 +251,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                 .text_data_mut()
                                                 .move_cursor(
                                                     TextEditMoveDirection::Left,
-                                                    key.modifiers == KeyModifiers::CONTROL
+                                                    key.modifiers == KeyModifiers::CONTROL,
+                                                    key.modifiers == KeyModifiers::SHIFT,
                                                 );
                                         }
 
@@ -252,18 +261,27 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                 .text_data_mut()
                                                 .move_cursor(
                                                     TextEditMoveDirection::Right,
-                                                    key.modifiers == KeyModifiers::CONTROL
+                                                    key.modifiers == KeyModifiers::CONTROL,
+                                                    key.modifiers == KeyModifiers::SHIFT,
                                                 );
                                         }
 
                                         KeyCode::End => {
                                             uistate.body_mut().text_data_mut()
-                                                .move_cursor(TextEditMoveDirection::End, false);
+                                                .move_cursor(
+                                                    TextEditMoveDirection::End,
+                                                    false,
+                                                    key.modifiers == KeyModifiers::SHIFT,
+                                                );
                                         }
 
                                         KeyCode::Home => {
                                             uistate.body_mut().text_data_mut()
-                                                .move_cursor(TextEditMoveDirection::Home, false);
+                                                .move_cursor(
+                                                    TextEditMoveDirection::Home,
+                                                    false,
+                                                    key.modifiers == KeyModifiers::SHIFT,
+                                                );
                                         }
 
                                         KeyCode::Enter => {
@@ -276,13 +294,23 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         }
 
                                         KeyCode::Backspace => {
-                                            uistate.body_mut().text_data_mut()
-                                                .delete_char();
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut().text_data_mut()
+                                                    .delete_word();
+                                            } else {
+                                                uistate.body_mut().text_data_mut()
+                                                    .delete_char();
+                                            }
                                         }
 
                                         KeyCode::Delete => {
-                                            uistate.body_mut().text_data_mut()
-                                                .delete_char_to_right();
+                                            if key.modifiers == KeyModifiers::CONTROL {
+                                                uistate.body_mut().text_data_mut()
+                                                    .delete_word_to_right();
+                                            } else {
+                                                uistate.body_mut().text_data_mut()
+                                                    .delete_char_to_right();
+                                            }
                                         }
 
                                         _ => {}

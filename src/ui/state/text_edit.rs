@@ -17,8 +17,11 @@ pub struct TextEditState {
     /// The current line number that is being edited
     line_number: u16,
 
-    sel_start_pos: u16,
-    sel_end_pos: u16,
+    /// (line, caracter) position for start of selection
+    sel_start_pos: (u16, u16),
+
+    /// (line, caracter) position for end of selection
+    sel_end_pos: (u16, u16),
     scroll_offset: u16,
 }
 
@@ -28,8 +31,8 @@ impl Default for TextEditState {
             text: vec![String::default()],
             cursor_pos: 0,
             line_number: 0,
-            sel_start_pos: 0,
-            sel_end_pos: 0,
+            sel_start_pos: (0, 0),
+            sel_end_pos: (0, 0),
             scroll_offset: 0,
         }
     }
@@ -45,21 +48,95 @@ impl TextEditState {
         self.cursor_pos = cursor_pos;
     }
 
-    pub fn sel_start_pos(&self) -> u16 { self.sel_start_pos.clone() }
-    pub fn set_sel_start_pos(&mut self, sel_start_pos: u16) {
+    pub fn sel_start_pos(&self) -> (u16, u16) { self.sel_start_pos.clone() }
+    pub fn set_sel_start_pos(&mut self, sel_start_pos: (u16, u16)) {
         self.sel_start_pos = sel_start_pos;
     }
 
-    pub fn sel_end_pos(&self) -> u16 { self.sel_end_pos.clone() }
-    pub fn set_sel_end_pos(&mut self, sel_end_pos: u16) {
+    pub fn sel_end_pos(&self) -> (u16, u16) { self.sel_end_pos.clone() }
+    pub fn set_sel_end_pos(&mut self, sel_end_pos: (u16, u16)) {
         self.sel_end_pos = sel_end_pos;
     }
 
+    /// The length of current line.
     fn current_line_len(&self) -> usize {
         match self.text.get(self.line_number as usize) {
             Some (line) => line.len(),
             None => 0,
         }
+    }
+
+    /// Counts the characters to the first whitespace character to the right of
+    /// cursor.
+    /// Ignores whitespace in current cursor position.
+    fn next_whitespace_len(&self) -> u16 {
+        if self.cursor_pos as usize >= self.current_line_len() {
+            return 0;
+        }
+
+        let mut count: u16 = 1;
+
+        let s = &self.text[self.line_number as usize];
+
+        while self.cursor_pos + count < self.current_line_len() as u16 {
+            match s.chars().nth((self.cursor_pos + count) as usize) {
+                Some (c) => {
+                    if c.is_whitespace() {
+                        return count;
+                    }
+
+                    count += 1
+                }
+                None => { return count; }
+            }
+        }
+
+        count -= 1;
+
+        return count;
+    }
+
+    /// Counts the characters to the first whitespace character to the left of
+    /// cursor.
+    /// Ignores whitespace in current cursor position.
+    /// if the flag `ignore_ws_imm_left` is `true` then ignores a whitespace
+    /// immediately left of the current cursor position.
+    fn prev_whitespace_len(&self, ignore_ws_imm_left: bool) -> u16 {
+        if self.cursor_pos as usize == 0 {
+            return 0;
+        }
+
+        let mut count: u16 = 1;
+
+        let s = &self.text[self.line_number as usize];
+
+        if ignore_ws_imm_left {
+            match s.chars().nth((self.cursor_pos - 1) as usize) {
+                Some (c) => {
+                    if c.is_whitespace() && (self.cursor_pos - 1) > 0 {
+                        count = 2;
+                    }
+                }
+                None => {}
+            }
+        }
+
+        while self.cursor_pos - count > 0 {
+            match s.chars().nth((self.cursor_pos - count) as usize) {
+                Some (c) => {
+                    if c.is_whitespace() {
+                        return count;
+                    }
+
+                    count += 1
+                }
+                None => { return count; }
+            }
+        }
+
+        //count -= 1;
+
+        return count;
     }
 
     /// Deletes character to the left of the cursor.
@@ -77,21 +154,52 @@ impl TextEditState {
                     None => {}
                 }
             } else {
-                let s = self.text[self.line_number as usize].clone();
-                self.text.remove(self.line_number as usize);
-                self.line_number -= 1;
-                self.cursor_pos = self.current_line_len() as u16;
+                if self.line_number > 0 {
+                    let s = self.text[self.line_number as usize].clone();
+                    self.text.remove(self.line_number as usize);
+                    self.line_number -= 1;
+                    self.cursor_pos = self.current_line_len() as u16;
 
-                match self.text.get_mut(self.line_number as usize) {
-                    Some (line_mut) => { line_mut.push_str(s.as_str()); }
-                    None => {}
+                    match self.text.get_mut(self.line_number as usize) {
+                        Some (line_mut) => { line_mut.push_str(s.as_str()); }
+                        None => {}
+                    }
                 }
             }
         }
     }
 
+    pub fn delete_word(&mut self) {
+        let ws_len = self.prev_whitespace_len(true) as usize;
+
+        let cursor_pos = self.cursor_pos as usize;
+
+        if ws_len == cursor_pos {
+            match self.text.get_mut(self.line_number as usize) {
+                Some (s) => {
+                    s.replace_range(0..cursor_pos, "");
+                    self.cursor_pos = 0;
+                }
+                None => {}
+            }
+        }
+
+        if ws_len < cursor_pos {
+            match self.text.get_mut(self.line_number as usize) {
+                Some (s) => {
+                    let range_start = cursor_pos - ws_len + 1;
+
+                    s.replace_range(range_start..cursor_pos, "");
+
+                    self.cursor_pos = range_start as u16;
+                }
+                None => {}
+            }
+        }
+    }
+
     pub fn delete_char_to_right(&mut self) {
-        if self.text.len() > 0 {
+        if self.cursor_pos < self.current_line_len() as u16 {
             let curr_line_length = self.text[
                     self.line_number as usize
                 ].len() as u16;
@@ -106,6 +214,41 @@ impl TextEditState {
                 }
             } else {
                 self.text.remove((self.line_number+1) as usize);
+            }
+        } else {
+            let line_num = self.line_number as usize;
+
+            if line_num < self.text.len() - 1 {
+                let mut current_line = self.text[line_num].clone();
+                let next_line = self.text[line_num + 1].clone();
+                
+                current_line.push_str(next_line.as_str());
+
+                self.text.remove(line_num);
+                self.text.remove(line_num);
+
+                self.text.insert(line_num, current_line);
+            }
+        }
+    }
+
+    pub fn delete_word_to_right(&mut self) {
+        let ws_len = self.next_whitespace_len() as usize;
+
+        if ws_len > 0 {
+            match self.text.get_mut(self.line_number as usize) {
+                Some (s) => {
+                    let range_start = self.cursor_pos as usize;
+                    let mut range_end = range_start + ws_len + 1;
+
+                    if range_end <= s.len() {
+                        s.replace_range(range_start..range_end, "");
+                    } else {
+                        range_end -= 1;
+                        s.replace_range(range_start..range_end, "");
+                    }
+                }
+                None => {}
             }
         }
     }
@@ -131,7 +274,12 @@ impl TextEditState {
         self.line_number = line_number;
     }
 
-    pub fn move_cursor(&mut self, move_direction: TextEditMoveDirection, word: bool) {
+    pub fn move_cursor(
+        &mut self,
+        move_direction: TextEditMoveDirection,
+        word: bool,
+        select: bool
+    ) {
         match move_direction {
             TextEditMoveDirection::Up => {
                 if self.line_number > 0 {
@@ -142,8 +290,20 @@ impl TextEditState {
                     if self.cursor_pos > line_len {
                         self.cursor_pos = line_len;
                     }
+
+                    if select {
+                        if self.sel_start_pos.0 > self.line_number
+                            && self.sel_start_pos.0 == self.sel_end_pos.0
+                        {
+                            self.sel_end_pos = self.sel_start_pos;
+                            self.sel_start_pos.0 = self.line_number;
+                        } else {
+                            self.sel_end_pos.0 = self.line_number;
+                        }
+                    }
                 }
             }
+
             TextEditMoveDirection::Down => {
                 if self.line_number < self.text.len() as u16 {
                     self.line_number += 1;
@@ -153,56 +313,110 @@ impl TextEditState {
                     if self.cursor_pos > line_len {
                         self.cursor_pos = line_len;
                     }
+
+                    if select {
+                        if self.sel_start_pos.0 < self.sel_end_pos.0
+                            && self.sel_start_pos.0 < self.line_number
+                        {
+                            self.sel_start_pos.0 = self.line_number;
+                        } else if self.sel_end_pos.0 < self.line_number
+                            && self.sel_start_pos.0 == self.sel_end_pos.0
+                        {
+                            self.sel_end_pos.0 = self.line_number;
+                        } else {
+                            self.sel_end_pos = self.sel_start_pos;
+                            self.sel_start_pos.0 = self.line_number;
+                        }
+                    }
                 }
             }
+
             TextEditMoveDirection::Right => {
                 let end: u16 = self.current_line_len() as u16;
 
                 if self.cursor_pos < end {
                     if word {
-                        let s = &self.text[self.line_number as usize];
+                        let nw = self.next_whitespace_len();
 
-                        self.cursor_pos += 1;
-
-                        while self.cursor_pos < end {
-                            let c = s.chars().nth(self.cursor_pos as usize)
-                                .unwrap();
-
-                            if c == ' ' {
-                                break;
-                            }
-
-                            self.cursor_pos += 1;
+                        if ((nw + 1) as usize) < self.current_line_len() {
+                            self.cursor_pos += nw + 1;
+                        } else {
+                            self.cursor_pos += nw;
                         }
                     } else {
                         self.cursor_pos += 1;
                     }
+
+                    if select {
+                        if self.sel_start_pos.0 == self.line_number {
+                            self.sel_start_pos.1 = self.cursor_pos;
+                        } else if self.sel_end_pos.0 == self.line_number {
+                            self.sel_end_pos.1 = self.cursor_pos;
+                        } else {
+                            self.sel_start_pos = (self.line_number, self.cursor_pos-1);
+                            self.sel_end_pos = (self.line_number, self.cursor_pos);
+                        }
+                    }
                 }
             }
+
             TextEditMoveDirection::Left => {
                 if self.cursor_pos > 0 {
                     if word {
-                        let s = &self.text[self.line_number as usize];
-                        while self.cursor_pos > 0 {
-                            self.cursor_pos -= 1;
+                        let pw = self.prev_whitespace_len(true);
 
-                            let c = s.chars().nth(self.cursor_pos as usize)
-                                .unwrap();
-
-                            if c == ' ' {
-                                break;
-                            }
+                        if self.cursor_pos - pw == 0 {
+                            self.cursor_pos = 0;
+                        } else {
+                            self.cursor_pos -= pw - 1;
                         }
                     } else {
                         self.cursor_pos -= 1;
                     }
+
+                    if select {
+                        if self.sel_start_pos.0 == self.line_number {
+                            self.sel_start_pos.1 = self.cursor_pos;
+                        } else if self.sel_end_pos.0 == self.line_number {
+                            self.sel_end_pos.1 = self.cursor_pos;
+                        } else {
+                            self.sel_start_pos = (self.line_number, self.cursor_pos);
+                            self.sel_end_pos = (self.line_number, self.cursor_pos+1);
+                        }
+                    }
                 }
             }
+
             TextEditMoveDirection::End => {
+                let prev_cursor_pos = self.cursor_pos;
                 self.cursor_pos = self.current_line_len() as u16;
+
+                if select {
+                    if self.sel_start_pos.0 == self.line_number {
+                        self.sel_start_pos.1 = self.cursor_pos;
+                    } else if self.sel_end_pos.0 == self.line_number {
+                        self.sel_end_pos.1 = self.cursor_pos;
+                    } else {
+                        self.sel_start_pos = (self.line_number, prev_cursor_pos);
+                        self.sel_end_pos = (self.line_number, self.cursor_pos);
+                    }
+                }
             }
+
             TextEditMoveDirection::Home => {
+                let prev_cursor_pos = self.cursor_pos;
                 self.cursor_pos = 0;
+
+                if select {
+                    if self.sel_start_pos.0 == self.line_number {
+                        self.sel_start_pos.1 = self.cursor_pos;
+                    } else if self.sel_end_pos.0 == self.line_number {
+                        self.sel_end_pos.1 = self.cursor_pos;
+                    } else {
+                        self.sel_start_pos = (self.line_number, self.cursor_pos);
+                        self.sel_end_pos = (self.line_number, prev_cursor_pos);
+                    }
+                }
             }
         }
     }
