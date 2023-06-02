@@ -23,6 +23,7 @@ pub struct TextEditState {
     /// (line, caracter) position for end of selection
     sel_end_pos: (u16, u16),
     scroll_offset: u16,
+    selecting: bool,
 }
 
 impl Default for TextEditState {
@@ -34,6 +35,7 @@ impl Default for TextEditState {
             sel_start_pos: (0, 0),
             sel_end_pos: (0, 0),
             scroll_offset: 0,
+            selecting: false,
         }
     }
 }
@@ -274,6 +276,16 @@ impl TextEditState {
         self.line_number = line_number;
     }
 
+    pub fn selecting(&self) -> bool { self.selecting.clone() }
+    pub fn set_selecting(&mut self, selecting: bool) {
+        self.selecting = selecting;
+    }
+    pub fn reset_selection(&mut self) {
+        self.selecting = false;
+        self.sel_start_pos = (0,0);
+        self.sel_end_pos = (0,0);
+    }
+
     pub fn move_cursor(
         &mut self,
         move_direction: TextEditMoveDirection,
@@ -292,14 +304,36 @@ impl TextEditState {
                     }
 
                     if select {
-                        if self.sel_start_pos.0 > self.line_number
-                            && self.sel_start_pos.0 == self.sel_end_pos.0
-                        {
-                            self.sel_end_pos = self.sel_start_pos;
-                            self.sel_start_pos.0 = self.line_number;
+                        if self.selecting() {
+                            if self.cur_before_start() {
+                                if self.sel_start_pos.0 == self.sel_end_pos.0
+                                   && self.cursor_pos > self.sel_start_pos.1
+                                {
+                                    self.sel_end_pos = self.sel_start_pos;
+                                    self.sel_start_pos = (self.line_number, self.cursor_pos);
+                                } else {
+                                    if self.line_number == self.sel_start_pos.0
+                                        && self.cursor_pos == self.sel_end_pos.1
+                                    {
+                                        self.sel_end_pos = self.sel_start_pos;
+                                        self.sel_start_pos = (self.line_number, self.cursor_pos);
+                                    } else {
+                                        self.sel_start_pos.0 = self.line_number;
+                                    }
+                                }
+                            } else if self.cur_bet_start_and_end() {
+                                self.sel_end_pos.0 = self.line_number;
+                            } else {
+                                self.sel_start_pos.0 = self.line_number;
+                                self.sel_end_pos.0 = self.line_number;
+                            }
                         } else {
-                            self.sel_end_pos.0 = self.line_number;
+                            self.selecting = true;
+                            self.sel_start_pos = (self.line_number, self.cursor_pos);
+                            self.sel_end_pos = (self.line_number + 1, self.cursor_pos);
                         }
+                    } else {
+                        self.reset_selection();
                     }
                 }
             }
@@ -315,18 +349,30 @@ impl TextEditState {
                     }
 
                     if select {
-                        if self.sel_start_pos.0 < self.sel_end_pos.0
-                            && self.sel_start_pos.0 < self.line_number
-                        {
-                            self.sel_start_pos.0 = self.line_number;
-                        } else if self.sel_end_pos.0 < self.line_number
-                            && self.sel_start_pos.0 == self.sel_end_pos.0
-                        {
-                            self.sel_end_pos.0 = self.line_number;
+                        if self.selecting() {
+                            if self.cur_bet_start_and_end() {
+                                self.sel_start_pos.0 = self.line_number;
+                            } else if self.cur_after_end() {
+                                if self.line_number == self.sel_end_pos.0
+                                    && self.cursor_pos > self.sel_end_pos.1
+                                {
+                                    self.sel_start_pos = self.sel_end_pos;
+                                    self.sel_end_pos = (self.line_number, self.cursor_pos);
+                                } else {
+                                    self.sel_end_pos.0 = self.line_number;
+                                }
+                            } else {
+                                self.sel_end_pos.0 = self.line_number;
+                                self.sel_start_pos.0 = self.line_number;
+                                self.sel_end_pos.0 = self.line_number;
+                            }
                         } else {
-                            self.sel_end_pos = self.sel_start_pos;
-                            self.sel_start_pos.0 = self.line_number;
+                            self.selecting = true;
+                            self.sel_start_pos = (self.line_number - 1, self.cursor_pos);
+                            self.sel_end_pos = (self.line_number, self.cursor_pos);
                         }
+                    } else {
+                        self.reset_selection();
                     }
                 }
             }
@@ -348,14 +394,22 @@ impl TextEditState {
                     }
 
                     if select {
-                        if self.sel_start_pos.0 == self.line_number {
-                            self.sel_start_pos.1 = self.cursor_pos;
-                        } else if self.sel_end_pos.0 == self.line_number {
-                            self.sel_end_pos.1 = self.cursor_pos;
+                        if self.selecting() {
+                            if self.cur_bet_start_and_end() {
+                                self.sel_start_pos.1 = self.cursor_pos;
+                            } else if self.cur_after_end() {
+                                self.sel_end_pos.1 = self.cursor_pos;
+                            } else {
+                                self.sel_end_pos.1 = self.cursor_pos;
+                                self.sel_start_pos.1 = self.cursor_pos;
+                            }
                         } else {
+                            self.selecting = true;
                             self.sel_start_pos = (self.line_number, self.cursor_pos-1);
                             self.sel_end_pos = (self.line_number, self.cursor_pos);
                         }
+                    } else {
+                        self.reset_selection();
                     }
                 }
             }
@@ -375,14 +429,22 @@ impl TextEditState {
                     }
 
                     if select {
-                        if self.sel_start_pos.0 == self.line_number {
-                            self.sel_start_pos.1 = self.cursor_pos;
-                        } else if self.sel_end_pos.0 == self.line_number {
-                            self.sel_end_pos.1 = self.cursor_pos;
+                        if self.selecting() {
+                            if self.cur_before_start() {
+                                self.sel_start_pos.1 = self.cursor_pos;
+                            } else if self.cur_bet_start_and_end() {
+                                self.sel_end_pos.1 = self.cursor_pos;
+                            } else {
+                                self.sel_end_pos.1 = self.cursor_pos;
+                                self.sel_start_pos.1 = self.cursor_pos;
+                            }
                         } else {
+                            self.selecting = true;
                             self.sel_start_pos = (self.line_number, self.cursor_pos);
                             self.sel_end_pos = (self.line_number, self.cursor_pos+1);
                         }
+                    } else {
+                        self.reset_selection();
                     }
                 }
             }
@@ -400,6 +462,8 @@ impl TextEditState {
                         self.sel_start_pos = (self.line_number, prev_cursor_pos);
                         self.sel_end_pos = (self.line_number, self.cursor_pos);
                     }
+                } else {
+                    self.reset_selection();
                 }
             }
 
@@ -416,6 +480,8 @@ impl TextEditState {
                         self.sel_start_pos = (self.line_number, self.cursor_pos);
                         self.sel_end_pos = (self.line_number, prev_cursor_pos);
                     }
+                } else {
+                    self.reset_selection();
                 }
             }
         }
@@ -443,6 +509,54 @@ impl TextEditState {
 
         self.line_number += 1;
         self.cursor_pos = 0;
+    }
+
+    /// Is cursor cursor is before start
+    fn cur_before_start(&self) -> bool {
+        (
+            self.sel_end_pos.0 == self.line_number
+            && self.sel_start_pos.0 == self.line_number
+            && self.cursor_pos < self.sel_start_pos.1
+        )
+        || (
+            self.line_number == self.sel_start_pos.0
+            && self.line_number < self.sel_end_pos.0
+            && self.cursor_pos < self.sel_start_pos.1
+        )
+        || self.line_number < self.sel_start_pos.0
+    }
+
+    /// Is cursor between start and end
+    fn cur_bet_start_and_end(&self) -> bool {
+        (
+            self.sel_end_pos.0 == self.line_number
+            && self.sel_start_pos.0 == self.line_number
+            && self.cursor_pos > self.sel_start_pos.1
+            && self.cursor_pos < self.sel_end_pos.1
+        )
+        || (
+            self.line_number == self.sel_start_pos.0
+            && self.line_number < self.sel_end_pos.0
+            && self.cursor_pos > self.sel_start_pos.1
+        )
+        || (
+            self.line_number == self.sel_end_pos.0
+            && self.line_number > self.sel_start_pos.0
+            && self.cursor_pos < self.sel_end_pos.1
+        )
+        || (
+            self.line_number > self.sel_start_pos.0
+            && self.line_number < self.sel_end_pos.0
+        )
+    }
+
+    /// Is cursor after end
+    fn cur_after_end(&self) -> bool {
+        (
+            self.sel_end_pos.0 == self.line_number
+            && self.cursor_pos > self.sel_end_pos.1
+        )
+        || self.line_number > self.sel_end_pos.0
     }
 }
 

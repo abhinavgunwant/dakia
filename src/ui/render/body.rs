@@ -34,15 +34,20 @@ pub fn render_body<B: Backend>(
         BodyContent::FormData => {}
 
         BodyContent::Text | BodyContent::Html | BodyContent::Xml => {
+            let text_data = uistate.body().text_data();
+
             let text_multi_line = TextInput::default()
                 .multi_line(true)
                 .label(String::from(" Content "))
                 .borders(Borders::ALL)
                 .active(*uistate.body().active_body_element() == BodyUIElement::TextArea)
                 .border_style(Style::default().fg(Color::White))
-                .line_number(uistate.body().text_data().line_number())
-                .cursor_pos(uistate.body().text_data().cursor_pos())
-                .text_vec(uistate.body().text_data().text_vec());
+                .line_number(text_data.line_number())
+                .cursor_pos(text_data.cursor_pos())
+                .selecting(text_data.selecting())
+                .sel_start_pos(text_data.sel_start_pos())
+                .sel_end_pos(text_data.sel_end_pos())
+                .text_vec(text_data.text_vec());
 
             f.render_widget(text_multi_line, body_content_rect[1]);
         }

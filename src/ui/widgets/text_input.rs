@@ -26,6 +26,9 @@ pub struct TextInput {
     cursor_pos: u16,
     line_number: u16,
     scroll_offset: u16,
+    selecting: bool,
+    sel_start_pos: (u16, u16),
+    sel_end_pos: (u16, u16),
 }
 
 impl Default for TextInput {
@@ -45,6 +48,9 @@ impl Default for TextInput {
             cursor_pos: 0,
             line_number: 0,
             scroll_offset: 0,
+            selecting: false,
+            sel_start_pos: (0, 0),
+            sel_end_pos: (0, 0),
         }
     }
 }
@@ -111,6 +117,17 @@ impl Widget for TextInput {
                 let cursor_block = Block::default()
                     .style(Style::default().fg(Color::Black).bg(Color::Yellow))
                     .borders(Borders::NONE);
+
+                if self.is_selecting() {
+                    let inner_area = Rect::new(
+                        area.x + 2,
+                        area.y + 1,
+                        area.width - 4,
+                        area.height - 2,
+                    );
+
+                    self.render_selection(inner_area, buf);
+                }
 
                 cursor_block.render(
                     Rect::new(
@@ -283,6 +300,91 @@ impl TextInput {
     pub fn scroll_offset(mut self, scroll_offset: u16) -> TextInput {
         self.scroll_offset = scroll_offset;
         self
+    }
+
+    pub fn is_selecting(&self) -> bool { self.selecting }
+    pub fn selecting(mut self, selecting: bool) -> TextInput {
+        self.selecting = selecting;
+        self
+    }
+
+    pub fn get_sel_start_pos(&self) -> (u16, u16) { self.sel_start_pos.clone() }
+    pub fn sel_start_pos(mut self, sel_start_pos: (u16, u16)) -> TextInput {
+        self.sel_start_pos = sel_start_pos;
+        self
+    }
+
+    pub fn get_sel_end_pos(&self) -> (u16, u16) { self.sel_end_pos.clone() }
+    pub fn sel_end_pos(mut self, sel_end_pos: (u16, u16)) -> TextInput {
+        self.sel_end_pos = sel_end_pos;
+        self
+    }
+
+    /// Renders text selection whenever textarea is displayed
+    fn render_selection(&self, area: Rect, buf: &mut Buffer) {
+        let start_pos = self.get_sel_start_pos();
+        let end_pos = self.get_sel_end_pos();
+
+        let line_diff = (start_pos.0 as i32 - end_pos.0 as i32).abs();
+
+        let sel_style = Style::default().fg(Color::White).bg(Color::DarkGray);
+
+        match line_diff {
+            0 => {
+                let sel_block = Block::default().style(sel_style).borders(Borders::NONE);
+                let x = area.x + start_pos.1;
+                let y = area.y + start_pos.0;
+                let width = end_pos.1 - start_pos.1 + 1;
+
+                sel_block.render(Rect::new(x, y, width, 1), buf);
+            }
+
+            1 => {
+                self.render_sel_multiline_ends(area, buf);
+            }
+
+            // 2 or more lines selected.
+            _ => {
+                let sel_block = Block::default().style(sel_style).borders(Borders::NONE);
+
+                sel_block.render(Rect::new(
+                    area.x,
+                    area.y + start_pos.0 + 1,
+                    area.width,
+                    (line_diff - 1).abs() as u16,
+                ), buf);
+
+                self.render_sel_multiline_ends(area, buf);
+            }
+        }
+    }
+
+    fn render_sel_multiline_ends(&self, area: Rect, buf: &mut Buffer) {
+        let start_pos = self.get_sel_start_pos();
+        let end_pos = self.get_sel_end_pos();
+
+        let sel_style = Style::default().fg(Color::White).bg(Color::DarkGray);
+
+        let sel_block = Block::default().style(sel_style).borders(Borders::NONE);
+
+        let x_pos = area.x + start_pos.1;
+
+        let rect_start = Rect::new(
+            x_pos,
+            area.y + start_pos.0,
+            area.width - start_pos.1,
+            1
+        );
+
+        let rect_end = Rect::new(
+            area.x,
+            area.y + end_pos.0,
+            end_pos.1,
+            1
+        );
+
+        sel_block.clone().render(rect_start, buf);
+        sel_block.render(rect_end, buf);
     }
 }
 
