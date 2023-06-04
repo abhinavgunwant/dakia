@@ -291,16 +291,46 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                         }
 
                                         KeyCode::Char(c) => {
-                                            uistate.body_mut().text_data_mut()
-                                                .insert_char(c);
+                                            if key.modifiers.contains(KeyModifiers::CONTROL) {
+                                                match c {
+                                                    'a' | 'A' => {
+                                                        uistate.body_mut()
+                                                            .text_data_mut()
+                                                            .select_all();
+                                                    }
+
+                                                    'c' | 'C' => {
+                                                        uistate.body_mut()
+                                                            .text_data_mut()
+                                                            .copy_selected();
+                                                    }
+
+                                                    'v' | 'V' => {
+                                                        uistate.body_mut()
+                                                            .text_data_mut()
+                                                            .paste();
+                                                    }
+
+                                                    _ => {}
+                                                }
+                                            } else {
+                                                uistate.body_mut().text_data_mut()
+                                                    .insert_char(c);
+                                            }
                                         }
 
                                         KeyCode::Backspace => {
                                             if key.modifiers == KeyModifiers::CONTROL {
-                                                uistate.body_mut().text_data_mut()
+                                                uistate.body_mut()
+                                                    .text_data_mut()
                                                     .delete_word();
+                                            } else if uistate.body().text_data().selecting() {
+                                                uistate.body_mut()
+                                                    .text_data_mut()
+                                                    .delete_selected();
                                             } else {
-                                                uistate.body_mut().text_data_mut()
+                                                uistate.body_mut()
+                                                    .text_data_mut()
                                                     .delete_char();
                                             }
                                         }
@@ -309,6 +339,10 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                             if key.modifiers == KeyModifiers::CONTROL {
                                                 uistate.body_mut().text_data_mut()
                                                     .delete_word_to_right();
+                                            } else if uistate.body().text_data().selecting() {
+                                                uistate.body_mut()
+                                                    .text_data_mut()
+                                                    .delete_selected();
                                             } else {
                                                 uistate.body_mut().text_data_mut()
                                                     .delete_char_to_right();
