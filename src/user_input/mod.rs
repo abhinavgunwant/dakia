@@ -1,6 +1,7 @@
 pub mod kv_tab;
 
 use std::io::Error;
+use log::info;
 
 use crossterm::event::{ self, Event, KeyCode, KeyModifiers };
 use crate::{
@@ -23,6 +24,7 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
             let mut update_url: bool = false;
 
             if key.code == KeyCode::Esc {
+                info!("Exiting normally");
                 return Ok(true);
             }
 

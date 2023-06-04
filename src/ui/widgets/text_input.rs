@@ -379,7 +379,7 @@ impl TextInput {
         let rect_end = Rect::new(
             area.x,
             area.y + end_pos.0,
-            end_pos.1,
+            end_pos.1 + 1,
             1
         );
 

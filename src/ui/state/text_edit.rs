@@ -357,10 +357,9 @@ impl TextEditState {
                                     && self.cursor_pos > self.sel_end_pos.1
                                 {
                                     self.sel_start_pos = self.sel_end_pos;
-                                    self.sel_end_pos = (self.line_number, self.cursor_pos);
-                                } else {
-                                    self.sel_end_pos.0 = self.line_number;
                                 }
+
+                                self.sel_end_pos = (self.line_number, self.cursor_pos);
                             } else {
                                 self.sel_end_pos.0 = self.line_number;
                                 self.sel_start_pos.0 = self.line_number;
