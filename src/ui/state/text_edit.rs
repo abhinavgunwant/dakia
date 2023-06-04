@@ -378,6 +378,7 @@ impl TextEditState {
 
             TextEditMoveDirection::Right => {
                 let end: u16 = self.current_line_len() as u16;
+                let previous_pos = self.cursor_pos;
 
                 if self.cursor_pos < end {
                     if word {
@@ -404,7 +405,13 @@ impl TextEditState {
                             }
                         } else {
                             self.selecting = true;
-                            self.sel_start_pos = (self.line_number, self.cursor_pos-1);
+
+                            if word {
+                                self.sel_start_pos = (self.line_number, previous_pos);
+                            } else {
+                                self.sel_start_pos = (self.line_number, self.cursor_pos-1);
+                            }
+
                             self.sel_end_pos = (self.line_number, self.cursor_pos);
                         }
                     } else {
@@ -414,6 +421,8 @@ impl TextEditState {
             }
 
             TextEditMoveDirection::Left => {
+                let previous_pos = self.cursor_pos;
+
                 if self.cursor_pos > 0 {
                     if word {
                         let pw = self.prev_whitespace_len(true);
@@ -439,8 +448,14 @@ impl TextEditState {
                             }
                         } else {
                             self.selecting = true;
+
+                            if word {
+                                self.sel_end_pos = (self.line_number, previous_pos);
+                            } else {
+                                self.sel_end_pos = (self.line_number, self.cursor_pos+1);
+                            }
+
                             self.sel_start_pos = (self.line_number, self.cursor_pos);
-                            self.sel_end_pos = (self.line_number, self.cursor_pos+1);
                         }
                     } else {
                         self.reset_selection();
@@ -453,11 +468,21 @@ impl TextEditState {
                 self.cursor_pos = self.current_line_len() as u16;
 
                 if select {
-                    if self.sel_start_pos.0 == self.line_number {
-                        self.sel_start_pos.1 = self.cursor_pos;
-                    } else if self.sel_end_pos.0 == self.line_number {
-                        self.sel_end_pos.1 = self.cursor_pos;
+                    if self.selecting() {
+                        if self.sel_start_pos.0 == self.line_number
+                            && self.sel_end_pos.0 == self.line_number
+                        {
+                            self.sel_start_pos.1 = self.sel_end_pos.1;
+                            self.sel_end_pos.1 = self.cursor_pos;
+                        } else if self.sel_start_pos.0 == self.line_number {
+                            self.sel_start_pos.1 = self.cursor_pos;
+                        } else if self.sel_end_pos.0 == self.line_number {
+                            self.sel_end_pos.1 = self.cursor_pos;
+                        } else {
+                            self.sel_end_pos = (self.line_number, self.cursor_pos);
+                        }
                     } else {
+                        self.selecting = true;
                         self.sel_start_pos = (self.line_number, prev_cursor_pos);
                         self.sel_end_pos = (self.line_number, self.cursor_pos);
                     }
@@ -471,11 +496,21 @@ impl TextEditState {
                 self.cursor_pos = 0;
 
                 if select {
-                    if self.sel_start_pos.0 == self.line_number {
-                        self.sel_start_pos.1 = self.cursor_pos;
-                    } else if self.sel_end_pos.0 == self.line_number {
-                        self.sel_end_pos.1 = self.cursor_pos;
+                    if self.selecting() {
+                        if self.sel_start_pos.0 == self.line_number
+                            && self.sel_end_pos.0 == self.line_number
+                        {
+                            self.sel_end_pos.1 = self.sel_start_pos.1;
+                            self.sel_start_pos.1 = 0;
+                        } else if self.sel_start_pos.0 == self.line_number {
+                            self.sel_start_pos.1 = self.cursor_pos;
+                        // } else if self.sel_end_pos.0 == self.line_number {
+                        } else {
+                            self.sel_end_pos.1 = self.cursor_pos;
+                        }
                     } else {
+                        self.selecting = true;
+
                         self.sel_start_pos = (self.line_number, self.cursor_pos);
                         self.sel_end_pos = (self.line_number, prev_cursor_pos);
                     }

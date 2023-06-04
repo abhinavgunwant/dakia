@@ -253,8 +253,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                 .text_data_mut()
                                                 .move_cursor(
                                                     TextEditMoveDirection::Left,
-                                                    key.modifiers == KeyModifiers::CONTROL,
-                                                    key.modifiers == KeyModifiers::SHIFT,
+                                                    key.modifiers.contains(KeyModifiers::CONTROL),
+                                                    key.modifiers.contains(KeyModifiers::SHIFT),
                                                 );
                                         }
 
@@ -263,8 +263,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                 .text_data_mut()
                                                 .move_cursor(
                                                     TextEditMoveDirection::Right,
-                                                    key.modifiers == KeyModifiers::CONTROL,
-                                                    key.modifiers == KeyModifiers::SHIFT,
+                                                    key.modifiers.contains(KeyModifiers::CONTROL),
+                                                    key.modifiers.contains(KeyModifiers::SHIFT),
                                                 );
                                         }
 
