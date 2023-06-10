@@ -69,6 +69,11 @@ impl TextEditState {
         }
     }
 
+    /// Gets the current line.
+    fn current_line(&self) -> String {
+        self.line(self.line_number)
+    }
+
     /// Length of the `line_number`th line
     fn line_len(&self, line_number: u16) -> usize {
         self.line(line_number).len()
@@ -445,7 +450,7 @@ impl TextEditState {
             }
 
             TextEditMoveDirection::Down => {
-                if self.line_number < self.text.len() as u16 {
+                if self.line_number + 1 < self.text.len() as u16 {
                     self.line_number += 1;
 
                     let line_len = self.current_line_len() as u16;
@@ -633,7 +638,7 @@ impl TextEditState {
     /// the cursor. When cursor is at the end of line, a new empty line is
     /// added at the end of text.
     pub fn new_line(&mut self) {
-        let s = &self.text[self.line_number as usize];
+        let s = self.current_line();
 
         if s.len() > self.cursor_pos.clone() as usize {
             let s_clone = s.clone();
@@ -779,6 +784,7 @@ impl TextEditState {
         }
     }
 
+    /// Copies the text selected in textarea to clipboard.
     pub fn copy_selected(&mut self) {
         if self.selecting() {
             let mut ctx = ClipboardContext::new().unwrap();
@@ -788,6 +794,7 @@ impl TextEditState {
         }
     }
 
+    /// Pastes the text from clipboard to the text area.
     pub fn paste(&mut self) {
         if self.selecting() {
             self.delete_selected();
@@ -796,42 +803,55 @@ impl TextEditState {
 
         let mut ctx = ClipboardContext::new().unwrap();
         let s = ctx.get_contents().unwrap();
-        let s_vec: Vec<String> = s.split('\n').map(str::to_owned).collect::<Vec<_>>();
+        let s_vec: Vec<String> = s.replace('\r', "").split('\n').map(str::to_owned).collect::<Vec<_>>();
 
-        if s_vec.len() > 0 {
-            if self.text.len() == 1 && self.line_len(0) == 0 {
-                self.text = s_vec;
+        if s_vec.is_empty() {
+            return;
+        }
 
-                self.line_number = (self.text.len() - 1) as u16;
-                self.cursor_pos = self.line_len(self.line_number) as u16;
+        // if no text entered in text area
+        if self.text.len() == 1 && self.line_len(0) == 0 {
+            self.text = s_vec;
 
-                return;
+            self.line_number = (self.text.len() - 1) as u16;
+            self.cursor_pos = self.line_len(self.line_number) as u16;
+
+            return;
+        }
+
+        let current_line = self.current_line();
+        let (left, right) = current_line.split_at(self.cursor_pos as usize);
+
+        self.text.remove(self.line_number as usize);
+
+        let mut updated_line: String = String::from(left);
+        updated_line.push_str(s_vec[0].as_str());
+
+        match s_vec.len() {
+            1 => {
+                self.cursor_pos = updated_line.len() as u16;
+                updated_line.push_str(right);
+
+                self.text.insert(self.line_number as usize, updated_line);
             }
 
-            let current_line = self.line(self.line_number);
-            let second_part: String = current_line.chars().skip(self.cursor_pos as usize)
-                .take(current_line.len() - (self.cursor_pos as usize))
-                .collect();
+            _ => {
+                self.text.insert(self.line_number as usize, updated_line);
 
-            match self.text.get_mut(self.line_number as usize) {
-                Some (line) => {
-                    line.replace_range((self.cursor_pos as usize)..line.len(), "");
-                    line.push_str(s_vec[0].as_str());
+                for copied_line in &s_vec[1..] {
                     self.line_number += 1;
+                    self.text.insert(self.line_number as usize, String::from(copied_line));
                 }
-                None => {}
-            }
 
-            for i in &s_vec[1..] {
-                self.text.insert(self.line_number as usize, i.clone());
-                self.line_number += 1;
-            }
-
-            match self.text.get_mut(self.line_number as usize) {
-                Some (line) => {
-                    line.push_str(second_part.as_str());
+                if !right.is_empty() {
+                    let mut last_line = self.current_line();
+                    self.text.remove(self.line_number as usize);
+                    self.cursor_pos = last_line.len() as u16;
+                    last_line.push_str(right);
+                    self.text.insert(self.line_number as usize, last_line);
+                } else {
+                    self.cursor_pos = self.current_line_len() as u16;
                 }
-                None => {}
             }
         }
     }
