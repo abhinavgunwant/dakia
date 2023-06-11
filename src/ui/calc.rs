@@ -1,6 +1,6 @@
 //! A util module that does calculations for UI
 
-/// Returns scrollbar "thumb" height thumb position respectively in a tuple.
+/// Returns scrollbar "thumb" height, thumb position respectively in a tuple.
 ///
 /// params:
 /// - `disp_content_len`: Displayed content length or the height of the

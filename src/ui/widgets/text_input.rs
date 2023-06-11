@@ -1,12 +1,13 @@
+use log::info;
 use tui::{
     buffer::Buffer,
-    layout::{ Alignment, Rect },
+    layout::{ Alignment, Layout, Constraint, Direction, Rect },
     widgets::{ BorderType, Borders, Block, Widget, Paragraph },
     text::Span,
     style::{ Color, Style },
 };
 
-use crate::ui::{ string_chunks, string_chunks_to_spans };
+use crate::ui::{ string_chunks, string_chunks_to_spans, calc::scrollbar_pos };
 
 /// A Widget that combines Block with text.
 /// Used as a text input field.
@@ -61,11 +62,35 @@ impl Widget for TextInput {
             return;
         }
 
-        let mut text_area = area.clone();
+        // text_area_outer contains text_area and scrollbar
+        let mut text_area_full = area.clone();
 
-        text_area.y += 1;
-        text_area.x += 2;
-        text_area.width -= 4;
+        text_area_full.y += 1;
+        text_area_full.x += 2;
+        text_area_full.width -= 4;
+        text_area_full.height -= 2;
+
+        let text_area_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Min(10),
+                Constraint::Length(1),
+            ].as_ref())
+            .split(text_area_full);
+
+        let text_area_height = text_area_full.height;
+
+        let content_overflows = self.get_text_vec().len() as u16 > text_area_height;
+
+        let text_area;
+
+        if content_overflows {
+            text_area = text_area_chunks[0];
+        } else {
+            text_area = text_area_full;
+        }
+
+        let scrollbar_area = text_area_chunks[1];
 
         // Block
         let mut block = Block::default()
@@ -89,7 +114,7 @@ impl Widget for TextInput {
         if self.is_multi_line() {
             let mut lines: Vec<String> = vec![];
             let mut text_start: usize = 0;
-            let mut text_end: usize = self.get_text_vec().len();
+            let mut text_end: usize;
 
             for line in self.get_text_vec() {
                 if line.len() > text_area.width as usize {
@@ -107,6 +132,8 @@ impl Widget for TextInput {
                 text_start = self.get_scroll_offset() as usize;
                 text_end = text_start + text_area.height as usize;
             }
+
+            info!("text_start: {}, text_end: {}", text_start, text_end);
 
             let text = Paragraph::new(
                 string_chunks_to_spans(&lines[text_start..text_end])
@@ -139,6 +166,10 @@ impl Widget for TextInput {
                     ),
                     buf
                 );
+            }
+
+            if content_overflows {
+                self.render_scrollbar(scrollbar_area, buf);
             }
         } else {
             match self.get_text() {
@@ -385,6 +416,33 @@ impl TextInput {
 
         sel_block.clone().render(rect_start, buf);
         sel_block.render(rect_end, buf);
+    }
+
+    fn render_scrollbar(&self, area: Rect, buf: &mut Buffer) {
+        let scrollbar_background = Block::default()
+            .style(Style::default().bg(Color::DarkGray));
+
+        let scrollbar_thumb = Block::default()
+            .style(Style::default().bg(Color::White));
+
+        let end_offset;
+        let top_offset = self.get_scroll_offset();
+        let total_content_len = self.get_text_vec().len() as u16;
+
+        if top_offset + area.height < total_content_len {
+            end_offset = top_offset + area.height;
+        } else {
+            end_offset = total_content_len;
+        }
+
+        let (height, y) = scrollbar_pos(
+            area.height,
+            end_offset,
+            total_content_len,
+        );
+
+        scrollbar_background.render(area, buf);
+        scrollbar_thumb.render(Rect::new(area.x, area.y + y, 1, height), buf);
     }
 }
 

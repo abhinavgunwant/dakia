@@ -24,6 +24,7 @@ pub struct TextEditState {
     /// (line, caracter) position for end of selection
     sel_end_pos: (u16, u16),
     scroll_offset: u16,
+    content_height: u16,
     selecting: bool,
 }
 
@@ -36,6 +37,7 @@ impl Default for TextEditState {
             sel_start_pos: (0, 0),
             sel_end_pos: (0, 0),
             scroll_offset: 0,
+            content_height: 0,
             selecting: false,
         }
     }
@@ -382,6 +384,11 @@ impl TextEditState {
         self.scroll_offset = scroll_offset;
     }
 
+    pub fn content_height(&self) -> u16 { self.content_height.clone() }
+    pub fn set_content_height(&mut self, content_height: u16) {
+        self.content_height = content_height;
+    }
+
     pub fn line_number(&self) -> u16 { self.line_number.clone() }
     pub fn set_line_number(&mut self, line_number: u16) {
         self.line_number = line_number;
@@ -446,6 +453,10 @@ impl TextEditState {
                     } else {
                         self.reset_selection();
                     }
+
+                    if self.line_number < self.scroll_offset {
+                        self.scroll_offset = self.line_number;
+                    }
                 }
             }
 
@@ -483,6 +494,15 @@ impl TextEditState {
                         }
                     } else {
                         self.reset_selection();
+                    }
+
+                    info!("scroll_offset: {}, content_height: {}, line_number: {}",
+                        self.scroll_offset,
+                        self.content_height,
+                        self.line_number);
+
+                    if self.line_number >= self.scroll_offset + self.content_height {
+                        self.scroll_offset = self.line_number - self.content_height + 1;
                     }
                 }
             }
@@ -654,6 +674,15 @@ impl TextEditState {
 
         self.line_number += 1;
         self.cursor_pos = 0;
+
+        info!("scroll_offset: {}, content_height: {}, line_number: {}",
+            self.scroll_offset,
+            self.content_height,
+            self.line_number);
+
+        if self.line_number >= self.scroll_offset + self.content_height {
+            self.scroll_offset = self.line_number - self.content_height + 1;
+        }
     }
 
     /// Is cursor cursor is before start

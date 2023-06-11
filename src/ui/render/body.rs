@@ -47,7 +47,12 @@ pub fn render_body<B: Backend>(
                 .selecting(text_data.selecting())
                 .sel_start_pos(text_data.sel_start_pos())
                 .sel_end_pos(text_data.sel_end_pos())
-                .text_vec(text_data.text_vec());
+                .text_vec(text_data.text_vec())
+                .scroll_offset(text_data.scroll_offset());
+
+            uistate.body_mut().text_data_mut().set_content_height(
+                body_content_rect[1].height - 2
+            );
 
             f.render_widget(text_multi_line, body_content_rect[1]);
         }
