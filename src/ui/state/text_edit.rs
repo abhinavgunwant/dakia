@@ -184,6 +184,12 @@ impl TextEditState {
                         Some (line_mut) => { line_mut.push_str(s.as_str()); }
                         None => {}
                     }
+
+                    if self.scroll_offset + self.content_height > self.text.len() as u16
+                        && self.scroll_offset > 0
+                    {
+                        self.scroll_offset -= 1;
+                    }
                 }
             }
         }
