@@ -90,8 +90,6 @@ impl Widget for TextInput {
             text_area = text_area_full;
         }
 
-        let scrollbar_area = text_area_chunks[1];
-
         // Block
         let mut block = Block::default()
             .borders(Borders::ALL)
@@ -133,11 +131,10 @@ impl Widget for TextInput {
                 text_end = text_start + text_area.height as usize;
             }
 
-            info!("text_start: {}, text_end: {}", text_start, text_end);
-
             let text = Paragraph::new(
                 string_chunks_to_spans(&lines[text_start..text_end])
             );
+
             text.render(text_area, buf);
 
             if self.is_active() {
@@ -169,53 +166,35 @@ impl Widget for TextInput {
             }
 
             if content_overflows {
-                self.render_scrollbar(scrollbar_area, buf);
+                self.render_scrollbar(text_area_chunks[1], buf);
             }
         } else {
+            let mut text: String;
+
             match self.get_text() {
                 Some (txt) => {
-                    if self.is_active() {
-                        let mut txt_ = txt.clone();
-                        txt_.push('\u{2502}');
-
-                        let text = Paragraph::new(
-                            Span::styled(txt_, self.get_active_border_style())
-                        );
-                        text.render(text_area, buf);
-                    } else {
-                        let text = Paragraph::new(txt.clone())
-                            .style(*self.get_border_style());
-                        text.render(text_area, buf);
-                    }
+                    text = txt.clone();
                 },
 
                 None => {
-                    if self.is_active() {
-                        if !self.is_multi_line() {
-                            let txt = String::from('\u{2502}');
-
-                            let text = Paragraph::new(
-                                Span::styled(txt, self.get_active_border_style())
-                            );
-
-                            text.render(text_area, buf);
-                        } else {
-                            let cursor_block = Block::default()
-                                .style(
-                                    Style::default()
-                                        .fg(Color::Black)
-                                        .bg(Color::Yellow)
-                                )
-                                .borders(Borders::NONE);
-
-                            cursor_block.render(
-                                Rect::new(text_area.x, text_area.y, 1, 1),
-                                buf,
-                            );
-                        }
-                    }
+                    text = String::default();
                 },
             }
+
+            let text_par: Paragraph;
+
+            if self.is_active() {
+                text.push('\u{2502}');
+
+                text_par = Paragraph::new(
+                    Span::styled(text, self.get_active_border_style())
+                );
+            } else {
+                text_par = Paragraph::new(text)
+                    .style(*self.get_border_style());
+            }
+
+            text_par.render(text_area, buf);
         }
     }
 }
@@ -309,7 +288,7 @@ impl TextInput {
         self
     }
 
-    pub fn is_multi_line(&self) -> bool { self.active }
+    pub fn is_multi_line(&self) -> bool { self.multi_line }
     pub fn multi_line(mut self, multi_line: bool) -> TextInput {
         self.multi_line = multi_line;
         self
