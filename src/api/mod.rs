@@ -84,57 +84,61 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                 }
             }
 
-//            BodyContent::Raw(_) => {
-//                match uistate.body().raw_body_content() {
-                    BodyContent::Json => {
-                        if !(
-                            headers.contains_key(CONTENT_TYPE)
-                            && headers.get(CONTENT_TYPE).unwrap().eq(APP_JSON)
-                        ) {
-                            headers.insert(
-                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
-                                HeaderValue::from_str(APP_JSON).unwrap()
-                            );
-                        }
-                    }
+            BodyContent::Json => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(APP_JSON)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(APP_JSON).unwrap()
+                    );
 
-                    BodyContent::Xml => {
-                        if !(
-                            headers.contains_key(CONTENT_TYPE)
-                            && headers.get(CONTENT_TYPE).unwrap().eq(APP_XML)
-                        ) {
-                            headers.insert(
-                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
-                                HeaderValue::from_str(APP_XML).unwrap()
-                            );
-                        }
-                    }
+                    request = request.body(uistate.body().text_data().text());
+                }
+            }
 
-                    BodyContent::Html => {
-                        if !(
-                            headers.contains_key(CONTENT_TYPE)
-                            && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_HTML)
-                        ) {
-                            headers.insert(
-                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
-                                HeaderValue::from_str(TEXT_HTML).unwrap()
-                            );
-                        }
-                    }
+            BodyContent::Xml => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(APP_XML)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(APP_XML).unwrap()
+                    );
 
-                    BodyContent::Text => {
-                        if !(
-                            headers.contains_key(CONTENT_TYPE)
-                            && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_PLAIN)
-                        ) {
-                            headers.insert(
-                                HeaderName::from_str(CONTENT_TYPE).unwrap(),
-                                HeaderValue::from_str(TEXT_PLAIN).unwrap()
-                            );
-                        }
-                    }
-//                }
-//            }
+                    request = request.body(uistate.body().text_data().text());
+                }
+            }
+
+            BodyContent::Html => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_HTML)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(TEXT_HTML).unwrap()
+                    );
+
+                    request = request.body(uistate.body().text_data().text());
+                }
+            }
+
+            BodyContent::Text => {
+                if !(
+                    headers.contains_key(CONTENT_TYPE)
+                    && headers.get(CONTENT_TYPE).unwrap().eq(TEXT_PLAIN)
+                ) {
+                    headers.insert(
+                        HeaderName::from_str(CONTENT_TYPE).unwrap(),
+                        HeaderValue::from_str(TEXT_PLAIN).unwrap()
+                    );
+
+                    request = request.body(uistate.body().text_data().text());
+                }
+            }
 
             _ => {}
         }
@@ -143,7 +147,7 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
     request = request.headers(headers);
 
     let response = request.send()?;
-//    let response = client.get(uistate.url_deconst().to_string()).send()?;
+
     uistate.increment_request_counter();
     uistate.set_response_status_code(Some(response.status().as_u16()));
 
