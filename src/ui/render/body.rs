@@ -1,3 +1,5 @@
+use log::info;
+
 use tui::{
     backend::Backend, style::{ Color, Style }, Frame,
     widgets::{ BorderType, Block, Borders, Paragraph },
@@ -31,7 +33,16 @@ pub fn render_body<B: Backend>(
         .split(body_content_rect[0]);
 
     match uistate.body().body_content() {
-        BodyContent::FormData => {}
+        BodyContent::FormData | BodyContent::FormURLEncoded => {
+            //info!("Rendering kv tab");
+
+            render_kv_tab(
+                f,
+                uistate.body().kv_tab_state(),
+                uistate.body().kv_data(),
+                body_content_rect[1],
+            );
+        }
 
         BodyContent::Text | BodyContent::Html | BodyContent::Xml => {
             let text_data = uistate.body().text_data();

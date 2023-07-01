@@ -9,6 +9,7 @@ use tui::{
 use crate::ui::{
     state::{
         UiState, UIElement, request_tabs::RequestTabs, kv_tab_state::KVTabState,
+        kv_data::KVData,
     },
     widgets::{ text_input::TextInput, label::Label },
     render::body::render_body,
@@ -40,14 +41,25 @@ pub fn render_tab_content<B: Backend>(
 
     match uistate.active_request_tab() {
         RequestTabs::UrlParams => {
-            render_kv_tab(f, uistate, RequestTabs::UrlParams, rect);
+            //render_kv_tab(f, uistate, RequestTabs::UrlParams, rect);
+            render_kv_tab(
+                f,
+                uistate.query_params_ui(),
+                uistate.url_deconst().query_params(),
+                rect
+            );
         },
         RequestTabs::Authorization => {
             let content = Paragraph::new(String::from("Authorization"));
             f.render_widget(content, rect_inset);
         },
         RequestTabs::Headers => {
-            render_kv_tab(f, uistate, RequestTabs::Headers, rect);
+            //render_kv_tab(f, uistate, RequestTabs::Headers, rect);
+            render_kv_tab(f,
+                uistate.request_headers_ui(),
+                uistate.request_headers(),
+                rect
+            );
         },
         RequestTabs::Body => {
             render_body(f, uistate, rect_inset);
@@ -57,24 +69,25 @@ pub fn render_tab_content<B: Backend>(
 
 pub fn render_kv_tab<B: Backend>(
     f: &mut Frame<B>,
-    uistate: &UiState,
-    render_tab: RequestTabs,
+    params: KVTabState,
+    kv_data: &Vec<KVData>,
+    //render_tab: RequestTabs,
     rect: Rect
 ) {
-    let params: KVTabState;
-    let kv_data;
+//    let params: KVTabState;
+//    let kv_data;
 
-    match render_tab {
-        RequestTabs::UrlParams => {
-            params = uistate.query_params_ui();
-            kv_data = uistate.url_deconst().query_params().iter().enumerate();
-        },
-        RequestTabs::Headers => {
-            params = uistate.request_headers_ui();
-            kv_data = uistate.request_headers().iter().enumerate();
-        },
-        _ => { return; }
-    }
+//    match render_tab {
+//        RequestTabs::UrlParams => {
+//            params = uistate.query_params_ui();
+//            kv_data = uistate.url_deconst().query_params().iter().enumerate();
+//        },
+//        RequestTabs::Headers => {
+//            params = uistate.request_headers_ui();
+//            kv_data = uistate.request_headers().iter().enumerate();
+//        },
+//        _ => { return; }
+//    }
 
     let content_rect = Rect::new(
         rect.x + 2,
@@ -107,7 +120,7 @@ pub fn render_kv_tab<B: Backend>(
         ].as_ref())
         .split(content_chunks[1]);
 
-    for (i, param) in kv_data {
+    for (i, param) in kv_data.iter().enumerate() {
         let mut name_rect = param_chunks[0];
         let mut value_rect = param_chunks[1];
         let mut add_param_chunk = param_actions_chunk[0];
@@ -162,9 +175,11 @@ pub fn render_kv_tab<B: Backend>(
         let add_param = action_block.clone().style(param_add_style);
 
         f.render_widget(add_param, add_param_chunk);
+
         add_param_chunk.x += 2;
         add_param_chunk.width -= 2;
         add_param_chunk.y += 1;
+
         f.render_widget(
             Label::default().text("+").style(param_add_style),
             add_param_chunk
@@ -179,8 +194,10 @@ pub fn render_kv_tab<B: Backend>(
         let remove_param = action_block.style(param_remove_style);
 
         f.render_widget(remove_param, remove_param_chunk);
+
         remove_param_chunk.x += 2;
         remove_param_chunk.y += 1;
+
         f.render_widget(
             Label::default().text("-").style(param_remove_style),
             remove_param_chunk,

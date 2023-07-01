@@ -1,6 +1,7 @@
 use std::{
-    error::Error, time::Duration, str::FromStr,
+    error::Error, time::Duration, str::FromStr, collections::HashMap,
 };
+use log::info;
 use reqwest::{
     blocking::{ Response, Client, ClientBuilder },
     header::{ self, HeaderMap, HeaderValue, HeaderName }, Method,
@@ -69,6 +70,16 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         HeaderName::from_str(CONTENT_TYPE).unwrap(),
                         HeaderValue::from_str(MULTIPART_FORM_DATA).unwrap()
                     );
+
+                    if uistate.body().kv_data().len() > 0 {
+                        let mut params = HashMap::new();
+
+                        for i in uistate.body().kv_data().iter() {
+                            params.insert(i.key(), i.value());
+                        }
+
+                        request = request.form(&params);
+                    }
                 }
             }
 
@@ -81,6 +92,16 @@ pub fn call_api(uistate: &mut UiState) -> Result<(), Box<dyn Error + 'static>> {
                         HeaderName::from_str(CONTENT_TYPE).unwrap(),
                         HeaderValue::from_str(APP_FORM_URL_ENCODED).unwrap()
                     );
+
+                    if uistate.body().kv_data().len() > 0 {
+                        let mut params = HashMap::new();
+
+                        for i in uistate.body().kv_data().iter() {
+                            params.insert(i.key(), i.value());
+                        }
+
+                        request = request.form(&params);
+                    }
                 }
             }
 

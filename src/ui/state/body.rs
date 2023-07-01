@@ -17,6 +17,8 @@ pub enum BodyUIElement {
 //    RawContentType(bool),
 
     TextArea,
+
+    KVArea,
 }
 
 #[derive(Clone, PartialEq)]
@@ -67,6 +69,7 @@ pub struct Body {
 
     /// The KV data for the body.
     kv_data: Vec<KVData>,
+    kv_tab_state: KVTabState,
 
     /// Text data for the body
     text_data: TextEditState,
@@ -77,8 +80,6 @@ pub struct Body {
 
 impl Default for Body {
     fn default() -> Self {
-        let kv_data: Vec<KVData> = vec![];
-
         Self {
             active_body_element: BodyUIElement::default(),
             body_content: BodyContent::default(),
@@ -89,7 +90,8 @@ impl Default for Body {
             raw_body_content_options: RawBodyContentType::as_string_vec(),
             raw_body_content_sel_index: 0,
             cursor_position: BodyCursorPosition::default(),
-            kv_data,
+            kv_data: vec![KVData::default()],
+            kv_tab_state: KVTabState::default(),
             text_data: TextEditState::default(),
             //disp_content_len: 5,
         }
@@ -169,6 +171,12 @@ impl Body {
 
     pub fn text_data(&self) -> &TextEditState { &self.text_data }
     pub fn text_data_mut(&mut self) -> &mut TextEditState { &mut self.text_data }
+
+    pub fn kv_data(&self) -> &Vec<KVData> { &self.kv_data }
+    pub fn kv_data_mut(&mut self) -> &mut Vec<KVData> { &mut self.kv_data }
+
+    pub fn kv_tab_state(&self) -> KVTabState { self.kv_tab_state.clone() }
+    pub fn kv_tab_state_mut(&mut self) -> &mut KVTabState { &mut self.kv_tab_state }
 }
 
 //impl BodyUIElement {

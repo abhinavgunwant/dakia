@@ -218,7 +218,9 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                         }
 
                         RequestTabs::Body => {
-                            match uistate.body().active_body_element() {
+                            let body = uistate.body_mut();
+
+                            match body.clone().active_body_element() {
                                 BodyUIElement::TextArea => {
                                     match key.code {
                                         KeyCode::Up => {
@@ -439,15 +441,109 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                                     uistate.body_mut().set_body_content_sel_index(s);
                                                 }
                                             } else if key.modifiers == KeyModifiers::CONTROL {
-                                                if *uistate.body().body_content() != BodyContent::NONE {
-                                                    uistate.body_mut()
-                                                        .set_active_body_element(
-                                                            BodyUIElement::TextArea
-                                                        );
+                                                match body.body_content() {
+                                                    BodyContent::FormData | BodyContent::FormURLEncoded => {
+                                                        body.set_active_body_element(BodyUIElement::KVArea);
+                                                    }
+
+                                                    BodyContent::Text | BodyContent::Html | BodyContent::Xml => {
+                                                        body.set_active_body_element(BodyUIElement::TextArea);
+                                                    }
+
+                                                    _ => {}
                                                 }
                                             }
                                         }
 
+                                        _ => {}
+                                    }
+                                }
+
+                                BodyUIElement::KVArea => {
+                                    match body.body_content() {
+                                        BodyContent::FormData | BodyContent::FormURLEncoded => {
+                                            let row = body.kv_tab_state().active_row();
+                                            let col = body.kv_tab_state().active_col();
+
+                                            process_kv_tab_input(key, row, col, |op| {
+                                                match op {
+                                                    KVTabOperation::Insert(pos) => {
+                                                        body.kv_data_mut().insert(pos as usize, KVData::default());
+                                                    }
+
+                                                    KVTabOperation::Remove(pos) => {
+                                                        let kv_vec = body.kv_data_mut();
+
+                                                        kv_vec.remove(pos as usize);
+
+                                                        if kv_vec.len() == 0 {
+                                                            kv_vec.insert(0, KVData::default());
+                                                        }
+                                                    }
+
+                                                    KVTabOperation::MoveColumn(col) => {
+                                                        body.kv_tab_state_mut().set_active_col(col);
+                                                    }
+
+                                                    KVTabOperation::MoveRow(row) => {
+                                                        body.kv_tab_state_mut().set_active_row(row);
+                                                    }
+
+                                                    KVTabOperation::AppendText(c) => {
+
+                                                        let vec_mut = body.kv_data_mut();
+
+                                                        match vec_mut.get_mut(row as usize) {
+                                                            Some(kv_data) => {
+                                                                if col == 0 {
+                                                                    let mut key = kv_data.key();
+                                                                    key.push(c);
+
+                                                                    kv_data.set_key(key);
+                                                                }
+
+                                                                if col == 1 {
+                                                                    let mut val = kv_data.value();
+                                                                    val.push(c);
+
+                                                                    kv_data.set_value(val);
+                                                                }
+                                                            }
+
+                                                            None => {}
+                                                        }
+                                                    }
+
+                                                    KVTabOperation::PopText() => {
+                                                        let row = body.kv_tab_state().active_row();
+                                                        let col = body.kv_tab_state().active_col();
+
+                                                        let vec_mut = body.kv_data_mut();
+
+                                                        match vec_mut.get_mut(row as usize) {
+                                                            Some(kv_data) => {
+                                                                if col == 0 {
+                                                                    let mut key = kv_data.key();
+                                                                    key.pop();
+
+                                                                    kv_data.set_key(key);
+                                                                }
+
+                                                                if col == 1 {
+                                                                    let mut val = kv_data.value();
+                                                                    val.pop();
+
+                                                                    kv_data.set_value(val);
+                                                                }
+                                                            }
+
+                                                            None => {}
+                                                        }
+                                                    }
+                                                }},
+                                                |_update| {}
+                                            );
+                                        }
                                         _ => {}
                                     }
                                 }
