@@ -465,6 +465,11 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                                             let row = body.kv_tab_state().active_row();
                                             let col = body.kv_tab_state().active_col();
 
+                                            if row == 0 && key.code == KeyCode::Up {
+                                                body.set_active_body_element(BodyUIElement::ContentType(false));
+                                                return Ok(false);
+                                            }
+
                                             process_kv_tab_input(key, row, col, |op| {
                                                 match op {
                                                     KVTabOperation::Insert(pos) => {
@@ -679,7 +684,32 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                 UIElement::SendButton => {
                     match key.code {
                         KeyCode::Enter => {
-                            call_api(uistate).unwrap();
+                            let req_counter = uistate.request_counter();
+                            info!(
+                                "Making call (#{}) to: {}",
+                                req_counter,
+                                uistate.url_deconst().to_string()
+                            );
+
+                            match call_api(uistate) {
+                                Ok(_) => {
+                                    info!("No Errors for #{}", req_counter);
+                                }
+
+                                Err(msg) => {
+                                    let source: String;
+
+                                    match msg.source() {
+                                        Some(err) => source = err.to_string(),
+                                        None => source = String::default(),
+                                    }
+
+                                    info!("{}", msg.to_string());
+
+                                    uistate.set_app_error(msg.to_string());
+                                    uistate.set_app_status(AppStatus::ERROR);
+                                }
+                            }
                         }
 
                         _ => {}

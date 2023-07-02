@@ -30,7 +30,7 @@ fn main() -> Result<(), io::Error> {
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
     let uistate = UiState::default();
 
-    info!("dakia {}", VERSION);
+    info!("dakia {}. Starting up...", VERSION);
 
     enable_raw_mode()?;
 

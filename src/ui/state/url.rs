@@ -198,8 +198,12 @@ impl Url {
         }
 
         if !self.query_params.is_empty() {
-            url_string.push('?');
-            url_string.push_str(&self.query_params_to_string());
+            let q_params = self.query_params_to_string();
+
+            if !q_params.is_empty() {
+                url_string.push('?');
+                url_string.push_str(&q_params);
+            }
         }
 
         url_string
