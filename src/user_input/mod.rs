@@ -51,6 +51,8 @@ pub fn process_user_input(uistate: &mut UiState) -> Result<bool, Error> {
                             }
                         }
 
+                        KeyCode::Right => { uistate.url_cursor_right(); }
+                        KeyCode::Left => { uistate.url_cursor_left(); }
 
                         _ => {}
                     }

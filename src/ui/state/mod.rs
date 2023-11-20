@@ -30,6 +30,8 @@ pub struct UiState {
     /// The deconstructed URL
     url_deconst: Url,
 
+    url_cursor_offset: u16,
+
     /// The state of the "Body" tab in request section.
     body: Body,
 
@@ -137,6 +139,7 @@ impl Default for UiState {
         Self {
             url: String::default(),
             url_deconst: Url::default(),
+            url_cursor_offset: 0,
             body: Body::default(),
             editor_mode: EditorMode::default(),
             method: Method::default(),
@@ -161,12 +164,63 @@ impl UiState {
     /// Sets the URL
     pub fn set_url(&mut self, url: String) { self.url = url; }
     /// Appends `chr` at the end of the URL.
-    pub fn append_url(&mut self, chr: char) { self.url.push(chr); }
-    pub fn append_url_string(&mut self, url_string: String) {
-        self.url.push_str(url_string.as_str());
+    pub fn append_url(&mut self, chr: char) {
+        let cursor_offset = self.url_cursor_offset as usize;
+
+        if cursor_offset == self.url.len() {
+            self.url.push(chr);
+        } else {
+            let mut t: String = self.url.chars().take(cursor_offset).collect();
+            let skiplen = t.len();
+
+            t.push(chr);
+
+            self.url = format!(
+                "{}{}",
+                t,
+                self.url.chars().skip(skiplen)
+                    .take(self.url.len() - skiplen)
+                    .collect::<String>()
+            );
+        }
+
+        self.url_cursor_right();
     }
     /// Pops the last character of the URL.
-    pub fn pop_url(&mut self) { self.url.pop(); }
+    pub fn pop_url(&mut self) {
+        if self.url_cursor_offset > 0 {
+            let len_before = self.url.len();
+            let cursor_offset = self.url_cursor_offset as usize;
+
+            if cursor_offset == len_before {
+                self.url.pop();
+            } else {
+                self.url = format!(
+                    "{}{}",
+                    self.url.chars().take(cursor_offset - 1)
+                        .collect::<String>(),
+                    self.url.chars().skip(cursor_offset)
+                        .take(len_before - cursor_offset)
+                        .collect::<String>()
+                );
+            }
+
+            self.url_cursor_left();
+        }
+    }
+
+    pub fn url_cursor_left(&mut self) {
+        if self.url_cursor_offset > 0 {
+            self.url_cursor_offset -= 1;
+        }
+    }
+
+    pub fn url_cursor_right(&mut self) {
+        if self.url_cursor_offset < self.url.len() as u16 {
+            self.url_cursor_offset += 1;
+        }
+    }
+    pub fn url_cursor_offset(&mut self) -> u16 { self.url_cursor_offset }
 
     pub fn url_deconst(&self) -> &Url { &self.url_deconst }
     pub fn url_deconst_mut(&mut self) -> &mut Url { &mut self.url_deconst }

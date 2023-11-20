@@ -89,6 +89,8 @@ pub fn ui_func<B: Backend>(f: &mut Frame<B>, uistate: &mut UiState) {
         .multi_line(false)
         .border_style(Style::default())
         .active_border_style(Style::default().fg(Color::Yellow))
+        .width(top_bar_chunks[1].width)
+        .cursor_pos(uistate.url_cursor_offset())
         .active(uistate.active_element() == &UIElement::URL);
 
     f.render_widget(url_input, top_bar_chunks[1]);

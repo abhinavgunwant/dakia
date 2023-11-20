@@ -27,6 +27,7 @@ pub struct TextInput {
     cursor_pos: u16,
     line_number: u16,
     scroll_offset: u16,
+    width: u16,
     selecting: bool,
     sel_start_pos: (u16, u16),
     sel_end_pos: (u16, u16),
@@ -49,6 +50,7 @@ impl Default for TextInput {
             cursor_pos: 0,
             line_number: 0,
             scroll_offset: 0,
+            width: 0,
             selecting: false,
             sel_start_pos: (0, 0),
             sel_end_pos: (0, 0),
@@ -171,25 +173,66 @@ impl Widget for TextInput {
         } else {
             let mut text: String;
 
-            match self.get_text() {
-                Some (txt) => {
-                    text = txt.clone();
-                },
-
-                None => {
-                    text = String::default();
-                },
-            }
-
             let text_par: Paragraph;
 
             if self.is_active() {
-                text.push('\u{2502}');
+                if let Some(txt) = self.get_text() {
+                    let cursor_pos = self.get_cursor_pos() as usize;
+
+                    let mut skip_chars = 0;
+
+                    let txtlen = txt.len();
+                    let width = self.get_width() as usize;
+
+                    if txtlen + 5 < width || cursor_pos + 5 < width {
+                        text = txt.clone();
+                    } else {
+                        skip_chars = 5 + txtlen - width;
+
+                        if cursor_pos > skip_chars {
+                            text = txt.chars().skip(skip_chars).collect();
+                        } else {
+                            text = txt.chars().skip(cursor_pos)
+                                .take(width).collect();
+                        }
+                    }
+
+                    if cursor_pos < txtlen {
+                        let t = text;
+
+                        if cursor_pos > skip_chars {
+                            let before_cursor = cursor_pos - skip_chars;
+
+                            text = format!(
+                                "{}\u{2502}{}",
+                                t.chars().take(before_cursor).collect::<String>(),
+                                t.chars().skip(before_cursor)
+                                    .take(t.len() - before_cursor)
+                                    .collect::<String>()
+                            );
+                        } else {
+                            text = format!(
+                                "\u{2502}{}",
+                                t.chars().take(width).collect::<String>()
+                            );
+                        }
+                    } else {
+                        text.push('\u{2502}');
+                    }
+                } else {
+                    text = String::from('\u{2502}');
+                }
 
                 text_par = Paragraph::new(
                     Span::styled(text, self.get_active_border_style())
                 );
             } else {
+                if let Some(txt) = self.get_text() {
+                    text = txt.clone();
+                } else {
+                    text = String::default();
+                }
+
                 text_par = Paragraph::new(text)
                     .style(*self.get_border_style());
             }
@@ -309,6 +352,12 @@ impl TextInput {
     pub fn get_scroll_offset(&self) -> u16 { self.scroll_offset.clone() }
     pub fn scroll_offset(mut self, scroll_offset: u16) -> TextInput {
         self.scroll_offset = scroll_offset;
+        self
+    }
+
+    pub fn get_width(&self) -> u16 { self.width.clone() }
+    pub fn width(mut self, width: u16) -> TextInput {
+        self.width = width;
         self
     }
 
